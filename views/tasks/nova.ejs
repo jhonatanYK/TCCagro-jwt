@@ -146,8 +146,8 @@
       </div>
     </div>
 
-    <!-- Notificação Toast -->
-    <div id="toast-notification" class="fixed top-4 right-4 bg-red-600 text-white px-6 py-4 rounded-lg shadow-2xl transform translate-x-[calc(100%+2rem)] transition-transform duration-300 ease-in-out z-50 max-w-md">
+    <!-- Notificação Toast (Inicialmente Escondida) -->
+    <div id="toast-notification" style="display: none;" class="fixed top-4 right-4 bg-red-600 text-white px-6 py-4 rounded-lg shadow-2xl z-50 max-w-md">
       <div class="flex items-start gap-3">
         <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -173,12 +173,15 @@
         
         // Define cor baseada no tipo
         if (type === 'warning') {
-          toast.className = 'fixed top-4 right-4 bg-yellow-600 text-white px-6 py-4 rounded-lg shadow-2xl transform translate-x-0 transition-transform duration-300 ease-in-out z-50 max-w-md';
+          toast.style.backgroundColor = '#ca8a04'; // yellow-600
         } else if (type === 'error') {
-          toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-4 rounded-lg shadow-2xl transform translate-x-0 transition-transform duration-300 ease-in-out z-50 max-w-md';
+          toast.style.backgroundColor = '#dc2626'; // red-600
         } else {
-          toast.className = 'fixed top-4 right-4 bg-teal-600 text-white px-6 py-4 rounded-lg shadow-2xl transform translate-x-0 transition-transform duration-300 ease-in-out z-50 max-w-md';
+          toast.style.backgroundColor = '#0d9488'; // teal-600
         }
+        
+        // Mostra a notificação
+        toast.style.display = 'block';
         
         // Auto-hide após 4 segundos
         setTimeout(hideToast, 4000);
@@ -186,7 +189,7 @@
 
       function hideToast() {
         const toast = document.getElementById('toast-notification');
-        toast.className = 'fixed top-4 right-4 bg-red-600 text-white px-6 py-4 rounded-lg shadow-2xl transform translate-x-[calc(100%+2rem)] transition-transform duration-300 ease-in-out z-50 max-w-md';
+        toast.style.display = 'none';
       }
 
       // Verifica se há dados disponíveis
