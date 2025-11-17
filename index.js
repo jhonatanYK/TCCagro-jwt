@@ -13,7 +13,7 @@ require('./models/Machine');
 require('./models/TaskMachine');
 
 // Sincroniza o banco de dados
-db.sync({ alter: true }).then(() => {
+db.sync().then(() => {
   console.log('✅ Banco de dados sincronizado!');
   console.log('📊 Sistema otimizado com isolamento completo por usuário');
 }).catch(err => {
