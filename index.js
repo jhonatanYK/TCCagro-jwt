@@ -13,11 +13,11 @@ require('./models/Machine');
 require('./models/TaskMachine');
 
 // Sincroniza o banco de dados
-const syncOptions = process.env.FORCE_SYNC === 'true' ? { force: true } : {};
+const syncOptions = process.env.FORCE_SYNC === 'true' ? { alter: true } : {};
 db.sync(syncOptions).then(() => {
   console.log('✅ Banco de dados sincronizado!');
   if (process.env.FORCE_SYNC === 'true') {
-    console.log('⚠️  FORCE_SYNC ativado - Banco de dados recriado do zero!');
+    console.log('⚙️  ALTER ativado - Adicionando colunas novas sem apagar dados');
   }
   console.log('📊 Sistema otimizado com isolamento completo por usuário');
 }).catch(err => {
