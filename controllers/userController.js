@@ -2,7 +2,7 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const {generateToken} = require('../middlewares/authMiddleware')
 
-// Função para validar formato de email (RFC 5322 simplificado)
+// Função para validar formato de email (RFC 5322 + validações extras)
 const isValidEmail = (email) => {
   // Verifica se o email não está vazio
   if (!email || typeof email !== 'string') {
@@ -17,11 +17,7 @@ const isValidEmail = (email) => {
     return false;
   }
   
-  // Regex mais rigoroso que valida:
-  // - Caracteres alfanuméricos, pontos, hífens, underscores antes do @
-  // - Não permite pontos consecutivos ou no início/fim da parte local
-  // - Domínio válido com pelo menos 2 caracteres após o último ponto
-  // - TLD (Top Level Domain) com 2-6 caracteres
+  // Regex rigoroso para validar estrutura básica
   const emailRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
   
   if (!emailRegex.test(email)) {
@@ -38,7 +34,7 @@ const isValidEmail = (email) => {
   const [localPart, domain] = email.split('@');
   
   // Valida parte local (antes do @)
-  if (localPart.length > 64) { // Máximo 64 caracteres conforme RFC
+  if (localPart.length < 1 || localPart.length > 64) {
     return false;
   }
   
@@ -47,8 +43,13 @@ const isValidEmail = (email) => {
     return false;
   }
   
+  // Não permite ponto no início ou fim da parte local
+  if (localPart.startsWith('.') || localPart.endsWith('.')) {
+    return false;
+  }
+  
   // Valida domínio
-  if (domain.length > 253) { // Máximo 253 caracteres para o domínio
+  if (domain.length < 4 || domain.length > 253) { // Mínimo: a.co (4 chars)
     return false;
   }
   
@@ -57,8 +58,56 @@ const isValidEmail = (email) => {
     return false;
   }
   
-  // Lista de domínios descartáveis/temporários comuns (opcional)
-  const disposableEmails = ['tempmail.com', 'throwaway.email', '10minutemail.com', 'guerrillamail.com'];
+  // Divide o domínio em partes
+  const domainParts = domain.split('.');
+  
+  // Valida cada parte do domínio
+  for (const part of domainParts) {
+    // Cada parte deve ter pelo menos 2 caracteres
+    if (part.length < 2) {
+      return false;
+    }
+    // Não pode começar ou terminar com hífen
+    if (part.startsWith('-') || part.endsWith('-')) {
+      return false;
+    }
+  }
+  
+  // Valida TLD (última parte do domínio)
+  const tld = domainParts[domainParts.length - 1].toLowerCase();
+  
+  // TLD deve ter pelo menos 2 caracteres e no máximo 6
+  if (tld.length < 2 || tld.length > 6) {
+    return false;
+  }
+  
+  // Lista de TLDs válidos e comuns (principais)
+  const validTLDs = [
+    'com', 'org', 'net', 'edu', 'gov', 'mil', 'int',
+    'br', 'co', 'uk', 'us', 'ca', 'au', 'de', 'fr', 'it', 'es', 'jp', 'cn', 'in',
+    'io', 'dev', 'app', 'tech', 'info', 'biz', 'name', 'pro', 'xyz',
+    'online', 'site', 'website', 'space', 'store', 'shop', 'blog',
+    'cloud', 'email', 'global', 'world', 'live', 'today'
+  ];
+  
+  // Verifica se o TLD está na lista de válidos
+  if (!validTLDs.includes(tld)) {
+    return false;
+  }
+  
+  // Valida que o domínio principal (antes do TLD) tem pelo menos 2 caracteres
+  const mainDomain = domainParts[domainParts.length - 2];
+  if (!mainDomain || mainDomain.length < 2) {
+    return false;
+  }
+  
+  // Lista de domínios descartáveis/temporários
+  const disposableEmails = [
+    'tempmail', 'throwaway', '10minutemail', 'guerrillamail', 
+    'mailinator', 'maildrop', 'trashmail', 'yopmail',
+    'sharklasers', 'spam4', 'temp-mail', 'fakeinbox'
+  ];
+  
   const domainLower = domain.toLowerCase();
   if (disposableEmails.some(disposable => domainLower.includes(disposable))) {
     return false;
