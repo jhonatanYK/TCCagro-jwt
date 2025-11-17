@@ -20,7 +20,6 @@ router.get("/edit/:id", authMiddleware, renderEdit);
 router.post("/edit/:id", authMiddleware, edit);
 router.post("/complete/:id", authMiddleware, complete);
 router.post("/mark-paid/:id", authMiddleware, markAsPaid);
-router.post("/mark-unpaid/:id", authMiddleware, markAsUnpaid);
 router.post("/delete/:id", authMiddleware, remove);
 
 module.exports = router;
