@@ -99,52 +99,59 @@ const renderNew = async (req, res) => {
 // Cria novo serviço
 const create = async (req, res) => {
   try {
-    const { client_id, serviceName, location, description, machine_ids, start_times, hourly_rates } = req.body;
+    let { client_id, serviceName, location, description, machine_ids, start_times, hourly_rates } = req.body;
     
-    console.log('Dados recebidos:', { client_id, serviceName, location, description });
-    console.log('machine_ids:', machine_ids);
-    console.log('start_times:', start_times);
-    console.log('hourly_rates:', hourly_rates);
+    // Garante que machine_ids seja sempre um array
+    if (!machine_ids) {
+      machine_ids = [];
+    } else if (!Array.isArray(machine_ids)) {
+      machine_ids = [machine_ids];
+    }
+
+    // Garante que start_times seja sempre um array
+    if (!start_times) {
+      start_times = [];
+    } else if (!Array.isArray(start_times)) {
+      start_times = [start_times];
+    }
+
+    // Garante que hourly_rates seja sempre um array
+    if (!hourly_rates) {
+      hourly_rates = [];
+    } else if (!Array.isArray(hourly_rates)) {
+      hourly_rates = [hourly_rates];
+    }
     
     // Cria o serviço principal
     const task = await Task.create({ 
-      client_id, 
-      serviceName, 
-      location, 
-      description, 
+      client_id: client_id || null,
+      serviceName: serviceName || '',
+      location: location || '',
+      description: description || '',
       user_id: req.userId
     });
 
     // Adiciona as máquinas ao serviço
-    if (machine_ids && Array.isArray(machine_ids)) {
-      const TaskMachine = require('../models/TaskMachine');
-      
-      for (let i = 0; i < machine_ids.length; i++) {
-        if (machine_ids[i] && start_times[i]) {
-          console.log(`Criando TaskMachine ${i + 1}:`, {
-            task_id: task.id,
-            machine_id: machine_ids[i],
-            startTime: start_times[i],
-            hourlyRate: hourly_rates[i] || 0
-          });
-          
-          await TaskMachine.create({
-            task_id: task.id,
-            machine_id: machine_ids[i],
-            startTime: start_times[i],
-            hourlyRate: hourly_rates[i] || 0,
-            endTime: null,
-            hoursWorked: 0,
-            totalAmount: 0
-          });
-        }
+    const TaskMachine = require('../models/TaskMachine');
+    
+    for (let i = 0; i < machine_ids.length; i++) {
+      if (machine_ids[i] && start_times[i]) {
+        await TaskMachine.create({
+          task_id: task.id,
+          machine_id: machine_ids[i],
+          startTime: parseFloat(start_times[i]) || 0,
+          hourlyRate: parseFloat(hourly_rates[i]) || 0,
+          endTime: null,
+          hoursWorked: 0,
+          totalAmount: 0
+        });
       }
     }
 
     res.redirect('/tasks');
   } catch (error) {
     console.error('Erro ao criar serviço:', error);
-    res.status(500).send({ error: 'Erro ao criar serviço: ' + error.message });
+    res.status(500).json({ error: 'Erro ao criar serviço: ' + error.message });
   }
 };
 
