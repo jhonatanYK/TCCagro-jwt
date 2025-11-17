@@ -13,8 +13,12 @@ require('./models/Machine');
 require('./models/TaskMachine');
 
 // Sincroniza o banco de dados
-db.sync().then(() => {
+const syncOptions = process.env.FORCE_SYNC === 'true' ? { force: true } : {};
+db.sync(syncOptions).then(() => {
   console.log('✅ Banco de dados sincronizado!');
+  if (process.env.FORCE_SYNC === 'true') {
+    console.log('⚠️  FORCE_SYNC ativado - Banco de dados recriado do zero!');
+  }
   console.log('📊 Sistema otimizado com isolamento completo por usuário');
 }).catch(err => {
   console.error('❌ Erro ao sincronizar banco de dados:', err);
