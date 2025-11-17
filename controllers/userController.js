@@ -2,10 +2,69 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const {generateToken} = require('../middlewares/authMiddleware')
 
-// Função para validar formato de email
+// Função para validar formato de email (RFC 5322 simplificado)
 const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  // Verifica se o email não está vazio
+  if (!email || typeof email !== 'string') {
+    return false;
+  }
+  
+  // Remove espaços em branco
+  email = email.trim();
+  
+  // Verifica tamanho (máximo 254 caracteres conforme RFC)
+  if (email.length > 254 || email.length < 5) {
+    return false;
+  }
+  
+  // Regex mais rigoroso que valida:
+  // - Caracteres alfanuméricos, pontos, hífens, underscores antes do @
+  // - Não permite pontos consecutivos ou no início/fim da parte local
+  // - Domínio válido com pelo menos 2 caracteres após o último ponto
+  // - TLD (Top Level Domain) com 2-6 caracteres
+  const emailRegex = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  
+  if (!emailRegex.test(email)) {
+    return false;
+  }
+  
+  // Verifica se tem apenas um @
+  const atCount = (email.match(/@/g) || []).length;
+  if (atCount !== 1) {
+    return false;
+  }
+  
+  // Separa a parte local do domínio
+  const [localPart, domain] = email.split('@');
+  
+  // Valida parte local (antes do @)
+  if (localPart.length > 64) { // Máximo 64 caracteres conforme RFC
+    return false;
+  }
+  
+  // Não permite pontos consecutivos
+  if (localPart.includes('..') || domain.includes('..')) {
+    return false;
+  }
+  
+  // Valida domínio
+  if (domain.length > 253) { // Máximo 253 caracteres para o domínio
+    return false;
+  }
+  
+  // Verifica se o domínio tem pelo menos um ponto
+  if (!domain.includes('.')) {
+    return false;
+  }
+  
+  // Lista de domínios descartáveis/temporários comuns (opcional)
+  const disposableEmails = ['tempmail.com', 'throwaway.email', '10minutemail.com', 'guerrillamail.com'];
+  const domainLower = domain.toLowerCase();
+  if (disposableEmails.some(disposable => domainLower.includes(disposable))) {
+    return false;
+  }
+  
+  return true;
 };
 
 const renderLogin = (req, res) => {
@@ -51,20 +110,28 @@ const logout = (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
+    
+    // Sanitiza o email (remove espaços e converte para minúsculas)
+    username = username ? username.trim().toLowerCase() : '';
     
     // Valida se o username é um email válido
     if (!isValidEmail(username)) {
       return res.render('users/login', { error: 'Por favor, insira um email válido!' });
     }
     
+    // Valida se a senha não está vazia
+    if (!password || password.length < 1) {
+      return res.render('users/login', { error: 'Por favor, insira sua senha!' });
+    }
+    
     const user = await User.findOne({ where: { username } });
     if (!user) {
-      return res.render('users/login', { error: 'Email não encontrado!' });
+      return res.render('users/login', { error: 'Email ou senha incorretos!' });
     }
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
-      return res.render('users/login', { error: 'Senha incorreta!' });
+      return res.render('users/login', { error: 'Email ou senha incorretos!' });
     }
     const token = generateToken(user);
     res.cookie('token', token, { httpOnly: true });
@@ -76,11 +143,42 @@ const login = async (req, res) => {
 
 const register = async(req, res) => {
   try {
-    const { name, username, password } = req.body;
+    let { name, username, password } = req.body;
+    
+    // Sanitiza os dados de entrada
+    name = name ? name.trim() : '';
+    username = username ? username.trim().toLowerCase() : '';
+    
+    // Valida nome
+    if (!name || name.length < 2) {
+      return res.render('users/register', { error: 'Nome deve ter pelo menos 2 caracteres!' });
+    }
+    
+    if (name.length > 100) {
+      return res.render('users/register', { error: 'Nome muito longo!' });
+    }
     
     // Valida se o username é um email válido
     if (!isValidEmail(username)) {
       return res.render('users/register', { error: 'Por favor, insira um email válido!' });
+    }
+    
+    // Valida senha
+    if (!password || password.length < 8) {
+      return res.render('users/register', { error: 'A senha deve ter no mínimo 8 caracteres!' });
+    }
+    
+    if (password.length > 128) {
+      return res.render('users/register', { error: 'Senha muito longa!' });
+    }
+    
+    // Verifica se a senha tem pelo menos uma letra maiúscula, minúscula e número
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    
+    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+      return res.render('users/register', { error: 'A senha deve conter letras maiúsculas, minúsculas e números!' });
     }
     
     const newPassword = bcrypt.hashSync(password, 10);
