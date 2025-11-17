@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Adicionar Serviço - Gestor de Serviços</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-gray-900 text-white">
+    <%- include('../partials/notifications') %>
+    
+    <div class="min-h-screen flex flex-col justify-center items-center px-4 py-8">
+      
+      <!-- Título e Ícone Centralizados -->
+      <div class="flex flex-col items-center mb-8">
+        <img src="/trator.png" alt="Ícone" class="w-16 h-16 mb-3">
+        <h2 class="text-2xl font-bold text-teal-400">Adicionar Serviço</h2>
+      </div>
+
+      <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-teal-600">
+        
+        <!-- Mensagem de Erro/Aviso -->
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="mb-6 p-4 bg-yellow-900 border-l-4 border-yellow-500 text-yellow-200 rounded">
+            <div class="flex items-start">
+              <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+              <div>
+                <p class="font-semibold mb-2"><%= error %></p>
+                <div class="text-sm space-y-1">
+                  <% if (error.includes('cliente')) { %>
+                    <a href="/clients/new" class="inline-block bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded mt-2 transition">
+                      ➕ Cadastrar Cliente
+                    </a>
+                  <% } %>
+                  <% if (error.includes('máquina')) { %>
+                    <a href="/machines/new" class="inline-block bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded mt-2 transition">
+                      ➕ Cadastrar Máquina
+                    </a>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% } %>
+        
+        <form action="/tasks/new" method="POST" class="flex flex-col gap-4">
+          
+          <label for="client_id" class="font-semibold text-teal-300">Selecione um Cliente*</label>
+          <select
+            name="client_id"
+            required
+            <%= (typeof error !== 'undefined' && error) ? 'disabled' : '' %>
+            class="bg-gray-700 text-gray-400 border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <option value="" disabled selected>
+              <%= clients.length === 0 ? 'Nenhum cliente cadastrado' : 'Selecione um Cliente*' %>
+            </option>
+            <% clients.forEach(function(client) { %>
+              <option value="<%= client.id %>"><%= client.name %></option>
+            <% }) %>
+          </select>
+
+          <label for="serviceName" class="font-semibold text-teal-300">Nome do Serviço*</label>
+          <textarea
+            name="serviceName"
+            placeholder="Descreva o serviço realizado..."
+            required
+            <%= (typeof error !== 'undefined' && error) ? 'disabled' : '' %>
+            rows="3"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500 resize-y"
+          ></textarea>
+
+          <!-- Seleção de Múltiplas Máquinas -->
+          <div class="border border-teal-600 rounded-lg p-4 bg-gray-700">
+            <label class="font-semibold text-teal-300 mb-3 block">Máquinas do Serviço*</label>
+            <p class="text-xs text-gray-400 mb-3">Selecione uma ou mais máquinas para este serviço</p>
+            
+            <div id="machines-container" class="space-y-3">
+              <!-- Máquinas serão adicionadas aqui dinamicamente -->
+            </div>
+
+            <button
+              type="button"
+              id="add-machine-btn"
+              class="mt-3 w-full bg-teal-700 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 border-2 border-teal-500 inline-flex items-center justify-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+              Adicionar Máquina
+            </button>
+          </div>
+
+          <label for="location" class="font-semibold text-teal-300">Endereço / Localidade</label>
+          <input
+            type="text"
+            name="location"
+            placeholder="Endereço / Localidade"
+            <%= (typeof error !== 'undefined' && error) ? 'disabled' : '' %>
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500"
+          />
+
+          <button
+            type="submit"
+            <%= (typeof error !== 'undefined' && error) ? 'disabled' : '' %>
+            class="w-full <%= (typeof error !== 'undefined' && error) ? 'bg-gray-600 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700' %> text-white font-bold py-3 px-6 rounded-lg transition duration-200 border-2 border-teal-400 inline-flex items-center justify-center gap-2 shadow-lg hover:shadow-xl mt-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Salvar Serviço
+          </button>
+        </form>
+
+        <!-- Botões de Navegação -->
+        <div class="mt-6 flex flex-col gap-3">
+          <a
+            href="/tasks"
+            class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 border-2 border-gray-600 inline-flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Voltar para Serviços
+          </a>
+          <a
+            href="/dashboard"
+            class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 border-2 border-gray-600 inline-flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            Voltar ao Painel
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Verifica se há dados disponíveis
+      const hasData = <%= (typeof error === 'undefined' || !error) ? 'true' : 'false' %>;
+      
+      if (!hasData) {
+        // Se não há dados, não executa o script de máquinas
+        console.log('Aguardando cadastro de clientes e máquinas');
+      } else {
+        // Dados das máquinas disponíveis
+        const availableMachines = <%- JSON.stringify(machines.map(m => ({ 
+          id: m.id, 
+          name: m.name, 
+          type: m.type, 
+          hourlyRate: m.hourlyRate 
+        }))) %>;
+        
+        let machineCounter = 0;
+
+        // Função para adicionar uma máquina
+        function addMachineField() {
+          machineCounter++;
+          const container = document.getElementById('machines-container');
+          
+          const machineDiv = document.createElement('div');
+          machineDiv.className = 'bg-gray-600 p-4 rounded-lg space-y-3 relative';
+          machineDiv.id = `machine-${machineCounter}`;
+          
+          machineDiv.innerHTML = `
+            <button 
+              type="button" 
+              onclick="removeMachine(${machineCounter})"
+              class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 transition"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+
+            <div>
+              <label class="block text-sm font-semibold text-teal-200 mb-1">Máquina ${machineCounter}*</label>
+              <select 
+                name="machine_ids[]" 
+                required
+                class="machine-select w-full bg-gray-700 text-white border border-gray-500 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="" disabled selected>Selecione uma máquina</option>
+                ${availableMachines.map(m => `
+                  <option value="${m.id}" data-rate="${m.hourlyRate}">
+                    ${m.name} - ${m.type} (R$ ${parseFloat(m.hourlyRate).toFixed(2).replace('.', ',')}/h)
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-teal-200 mb-1">Horímetro Inicial*</label>
+              <input 
+                type="number" 
+                step="0.1" 
+                name="start_times[]" 
+                placeholder="Ex: 1234.5" 
+                required
+                class="w-full bg-gray-700 text-white border border-gray-500 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <p class="text-xs text-gray-400 mt-1">Horímetro no início do serviço</p>
+            </div>
+
+            <input type="hidden" name="hourly_rates[]" class="hourly-rate-input" value="0">
+          `;
+          
+          container.appendChild(machineDiv);
+
+          // Adiciona listener para atualizar o hourlyRate quando selecionar máquina
+          const select = machineDiv.querySelector('.machine-select');
+          const hourlyRateInput = machineDiv.querySelector('.hourly-rate-input');
+          
+          select.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const rate = selectedOption.getAttribute('data-rate');
+            hourlyRateInput.value = rate || 0;
+            validateDuplicateMachines.call(this);
+          });
+        }
+
+        // Função para remover uma máquina
+        function removeMachine(id) {
+          const machineDiv = document.getElementById(`machine-${id}`);
+          if (machineDiv) {
+            // Verifica se é a última máquina
+            const container = document.getElementById('machines-container');
+            if (container.children.length > 1) {
+              machineDiv.remove();
+            } else {
+              showNotification('É necessário ter pelo menos uma máquina no serviço!', 'warning');
+            }
+          }
+        }
+
+        // Validar máquinas duplicadas
+        function validateDuplicateMachines() {
+          const selects = document.querySelectorAll('#machines-container .machine-select');
+          const selectedIds = Array.from(selects)
+            .map(s => s.value)
+            .filter(v => v !== '');
+          
+          const duplicates = selectedIds.filter((id, index) => selectedIds.indexOf(id) !== index);
+          
+          if (duplicates.length > 0) {
+            showNotification('Você não pode adicionar a mesma máquina duas vezes!', 'warning');
+            this.value = '';
+            return false;
+          }
+          return true;
+        }
+
+        // Botão para adicionar máquina
+        document.getElementById('add-machine-btn').addEventListener('click', addMachineField);
+
+        // Adiciona a primeira máquina automaticamente
+        addMachineField();
+      
+      } // Fecha o bloco if (hasData)
+
+      // Verifica se o usuário ainda está autenticado
+      (function() {
+        // Desabilita o botão voltar após logout - verifica se página veio do cache
+        window.addEventListener('pageshow', function(event) {
+          if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
+            // Página foi restaurada do cache - verifica autenticação
+            fetch('/api/check-auth', {
+              method: 'GET',
+              credentials: 'include'
+            })
+            .then(response => {
+              if (!response.ok) {
+                window.location.replace('/login');
+              }
+            })
+            .catch(() => {
+              window.location.replace('/login');
+            });
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
+        

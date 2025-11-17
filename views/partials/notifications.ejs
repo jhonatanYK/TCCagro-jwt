@@ -1,0 +1,113 @@
+<!-- Sistema de Notificações Customizado -->
+<div id="notification-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+<!-- Modal oculto por padrão (hidden), flex é necessário para quando visível -->
+<div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+  <div class="bg-gray-800 rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-2 border-yellow-500">
+    <div class="flex items-start mb-4">
+      <svg class="w-8 h-8 text-yellow-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+      </svg>
+      <div>
+        <h3 class="text-xl font-bold text-white mb-2">Confirmar Ação</h3>
+        <p id="confirm-message" class="text-gray-300"></p>
+      </div>
+    </div>
+    <div class="flex gap-3 justify-end">
+      <button id="confirm-cancel" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
+        Cancelar
+      </button>
+      <button id="confirm-ok" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
+        Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Sistema de Notificações
+  function showNotification(message, type = 'info') {
+    const container = document.getElementById('notification-container');
+    const notification = document.createElement('div');
+    
+    const colors = {
+      success: 'bg-green-600 border-green-400',
+      error: 'bg-red-600 border-red-400',
+      warning: 'bg-yellow-600 border-yellow-400',
+      info: 'bg-blue-600 border-blue-400'
+    };
+    
+    const icons = {
+      success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
+      error: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>',
+      warning: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>',
+      info: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'
+    };
+    
+    notification.className = `${colors[type]} border-2 rounded-lg shadow-lg p-4 min-w-[300px] max-w-md transform transition-all duration-300 translate-x-0 opacity-100`;
+    notification.innerHTML = `
+      <div class="flex items-start">
+        <svg class="w-6 h-6 text-white mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          ${icons[type]}
+        </svg>
+        <div class="flex-1">
+          <p class="text-white font-semibold">${message}</p>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" class="text-white hover:text-gray-200 ml-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Auto remove após 5 segundos
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      notification.style.transform = 'translateX(400px)';
+      setTimeout(() => notification.remove(), 300);
+    }, 5000);
+  }
+
+  // Sistema de Confirmação
+  function showConfirm(message) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('confirm-modal');
+      const messageEl = document.getElementById('confirm-message');
+      const okBtn = document.getElementById('confirm-ok');
+      const cancelBtn = document.getElementById('confirm-cancel');
+      
+      messageEl.textContent = message;
+      modal.classList.remove('hidden');
+      
+      function cleanup() {
+        modal.classList.add('hidden');
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+      }
+      
+      okBtn.onclick = () => {
+        cleanup();
+        resolve(true);
+      };
+      
+      cancelBtn.onclick = () => {
+        cleanup();
+        resolve(false);
+      };
+      
+      // Fechar ao clicar fora
+      modal.onclick = (e) => {
+        if (e.target === modal) {
+          cleanup();
+          resolve(false);
+        }
+      };
+    });
+  }
+
+  // Substitui alert nativo
+  window.customAlert = showNotification;
+  window.customConfirm = showConfirm;
+</script>

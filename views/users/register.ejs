@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Registrar - Gestor de Serviços</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-gray-900 text-white">
+    <div class="min-h-screen flex flex-col justify-center items-center px-4">
+      <div class="flex flex-col items-center mb-10">
+        <img src="/trator.png" alt="Ícone" class="w-20 h-20 mb-4">
+        <h2 class="text-2xl font-bold text-teal-400">Gestor de Serviços</h2>
+      </div>
+
+      <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <% if (typeof error !== 'undefined' && error) { %>
+          <p class="text-red-400 text-center mb-4 font-medium"><%= error %></p>
+        <% } %>
+
+        <form action="/register" method="POST" class="flex flex-col gap-4">
+          <div>
+            <label for="name" class="block font-semibold text-teal-300 mb-1">Nome:</label>
+            <input type="text" name="name" required class="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+
+          <div>
+            <label for="username" class="block font-semibold text-teal-300 mb-1">Email:</label>
+            <input type="email" name="username" required class="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+
+          <div>
+            <label for="password" class="block font-semibold text-teal-300 mb-1">Senha:</label>
+            <div class="relative">
+              <input 
+                type="password" 
+                name="password" 
+                id="password"
+                required 
+                minlength="8"
+                class="w-full bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-teal-500" 
+              />
+              <button 
+                type="button" 
+                id="togglePassword"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white focus:outline-none"
+              >
+                <svg id="eyeOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <svg id="eyeClosed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Requisitos da senha -->
+            <div class="mt-2 text-xs space-y-1">
+              <p class="flex items-center gap-2">
+                <span id="req-length" class="text-red-400">✗</span>
+                <span class="text-gray-400">Mínimo de 8 caracteres</span>
+              </p>
+              <p class="flex items-center gap-2">
+                <span id="req-uppercase" class="text-red-400">✗</span>
+                <span class="text-gray-400">Pelo menos uma letra maiúscula</span>
+              </p>
+              <p class="flex items-center gap-2">
+                <span id="req-lowercase" class="text-red-400">✗</span>
+                <span class="text-gray-400">Pelo menos uma letra minúscula</span>
+              </p>
+              <p class="flex items-center gap-2">
+                <span id="req-number" class="text-red-400">✗</span>
+                <span class="text-gray-400">Pelo menos um número</span>
+              </p>
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn" disabled class="w-full bg-gray-600 text-gray-400 font-semibold py-3 rounded-lg transition duration-200 border-2 border-gray-500 cursor-not-allowed">
+            Cadastrar-se
+          </button>
+        </form>
+
+        <p class="mt-4 text-sm text-gray-300 text-center">
+          Já tem conta?
+          <a href="/login" class="text-teal-400 hover:underline font-medium">Faça login</a>
+        </p>
+      </div>
+    </div>
+
+    <script>
+      const passwordInput = document.getElementById('password');
+      const togglePassword = document.getElementById('togglePassword');
+      const eyeOpen = document.getElementById('eyeOpen');
+      const eyeClosed = document.getElementById('eyeClosed');
+      const submitBtn = document.getElementById('submitBtn');
+
+      // Elementos dos requisitos
+      const reqLength = document.getElementById('req-length');
+      const reqUppercase = document.getElementById('req-uppercase');
+      const reqLowercase = document.getElementById('req-lowercase');
+      const reqNumber = document.getElementById('req-number');
+
+      // Toggle mostrar/ocultar senha
+      togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        eyeOpen.classList.toggle('hidden');
+        eyeClosed.classList.toggle('hidden');
+      });
+
+      // Validação da senha em tempo real
+      passwordInput.addEventListener('input', function() {
+        const value = passwordInput.value;
+        let validCount = 0;
+
+        // Verifica comprimento (mínimo 8)
+        if (value.length >= 8) {
+          reqLength.textContent = '✓';
+          reqLength.className = 'text-green-400';
+          validCount++;
+        } else {
+          reqLength.textContent = '✗';
+          reqLength.className = 'text-red-400';
+        }
+
+        // Verifica letra maiúscula
+        if (/[A-Z]/.test(value)) {
+          reqUppercase.textContent = '✓';
+          reqUppercase.className = 'text-green-400';
+          validCount++;
+        } else {
+          reqUppercase.textContent = '✗';
+          reqUppercase.className = 'text-red-400';
+        }
+
+        // Verifica letra minúscula
+        if (/[a-z]/.test(value)) {
+          reqLowercase.textContent = '✓';
+          reqLowercase.className = 'text-green-400';
+          validCount++;
+        } else {
+          reqLowercase.textContent = '✗';
+          reqLowercase.className = 'text-red-400';
+        }
+
+        // Verifica número
+        if (/[0-9]/.test(value)) {
+          reqNumber.textContent = '✓';
+          reqNumber.className = 'text-green-400';
+          validCount++;
+        } else {
+          reqNumber.textContent = '✗';
+          reqNumber.className = 'text-red-400';
+        }
+
+        // Habilita/desabilita o botão de submit
+        if (validCount === 4) {
+          submitBtn.disabled = false;
+          submitBtn.className = 'w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition duration-200 border-2 border-teal-400 cursor-pointer';
+        } else {
+          submitBtn.disabled = true;
+          submitBtn.className = 'w-full bg-gray-600 text-gray-400 font-semibold py-3 rounded-lg transition duration-200 border-2 border-gray-500 cursor-not-allowed';
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Editar Cliente - Gestor de Serviços</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-gray-900 text-white">
+    <div class="min-h-screen flex flex-col justify-center items-center px-4 py-8">
+      <div class="flex flex-col items-center mb-8">
+        <img src="/trator.png" alt="Ícone" class="w-16 h-16 mb-3">
+        <h2 class="text-2xl font-bold text-teal-400">Editar Cliente</h2>
+      </div>
+
+      <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-teal-600">
+        <form action="/clients/edit/<%= client.id %>" method="POST" class="flex flex-col gap-4">
+          <label for="name" class="font-semibold text-teal-300">Nome:</label>
+          <input
+            type="text"
+            name="name"
+            value="<%= client.name %>"
+            required
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          <label for="email" class="font-semibold text-teal-300">Email:</label>
+          <input
+            type="email"
+            name="email"
+            value="<%= client.email || '' %>"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          <label for="phone" class="font-semibold text-teal-300">Telefone:</label>
+          <input
+            type="text"
+            name="phone"
+            id="phone"
+            value="<%= client.phone || '' %>"
+            placeholder="(00) 00000-0000"
+            maxlength="15"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          <label for="address" class="font-semibold text-teal-300">Endereço:</label>
+          <input
+            type="text"
+            name="address"
+            value="<%= client.address || '' %>"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          <label for="notes" class="font-semibold text-teal-300">Observações:</label>
+          <textarea
+            name="notes"
+            rows="3"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          ><%= client.notes || '' %></textarea>
+
+          <button
+            type="submit"
+            class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-lg transition duration-200 border-2 border-teal-400 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl mt-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Salvar Alterações
+          </button>
+        </form>
+
+        <!-- Botões de Navegação -->
+        <div class="mt-6 flex flex-col gap-3">
+          <a
+            href="/clients"
+            class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 border-2 border-gray-600 inline-flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Voltar para Clientes
+          </a>
+          <a
+            href="/dashboard"
+            class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-200 border-2 border-gray-600 inline-flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            Voltar ao Painel
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Máscara de telefone
+      document.getElementById('phone').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 11) {
+          value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+          value = value.replace(/(\d)(\d{4})$/, '$1-$2');
+        }
+        e.target.value = value;
+      });
+
+      // Formata o telefone ao carregar a página
+      window.addEventListener('load', function() {
+        const phoneInput = document.getElementById('phone');
+        if (phoneInput.value) {
+          let value = phoneInput.value.replace(/\D/g, '');
+          if (value.length <= 11) {
+            value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+            value = value.replace(/(\d)(\d{4})$/, '$1-$2');
+          }
+          phoneInput.value = value;
+        }
+      });
+    </script>
+
+    <script>
+      // Verifica se o usuário ainda está autenticado
+      (function() {
+        // Desabilita o botão voltar após logout - verifica se página veio do cache
+        window.addEventListener('pageshow', function(event) {
+          if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
+            // Página foi restaurada do cache - verifica autenticação
+            fetch('/api/check-auth', {
+              method: 'GET',
+              credentials: 'include'
+            })
+            .then(response => {
+              if (!response.ok) {
+                window.location.replace('/login');
+              }
+            })
+            .catch(() => {
+              window.location.replace('/login');
+            });
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

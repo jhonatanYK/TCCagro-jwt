@@ -1,0 +1,23 @@
+<script>
+  // Verifica se o usuário ainda está autenticado
+  (function() {
+    // Desabilita o botão voltar após logout - verifica se página veio do cache
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
+        // Página foi restaurada do cache - verifica autenticação
+        fetch('/api/check-auth', {
+          method: 'GET',
+          credentials: 'include'
+        })
+        .then(response => {
+          if (!response.ok) {
+            window.location.replace('/login');
+          }
+        })
+        .catch(() => {
+          window.location.replace('/login');
+        });
+      }
+    });
+  })();
+</script>

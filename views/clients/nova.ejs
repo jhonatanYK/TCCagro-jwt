@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Novo Cliente - Gestor de Serviços</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-gray-900 text-white">
+    <div class="min-h-screen flex flex-col justify-center items-center px-4 py-8">
+      <!-- Cabeçalho Centralizado -->
+      <div class="flex flex-col items-center mb-8">
+        <img src="/trator.png" alt="Ícone" class="w-16 h-16 mb-3">
+        <h2 class="text-2xl font-bold text-teal-400">Novo Cliente</h2>
+      </div>
+
+      <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-teal-600">
+        <form action="/clients/new" method="POST" class="flex flex-col gap-4">
+          <label for="name" class="font-semibold text-teal-300">Nome:</label>
+          <input
+            type="text"
+            name="name"
+            required
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          <label for="email" class="font-semibold text-teal-300">Email:</label>
+          <input
+            type="email"
+            name="email"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          <label for="phone" class="font-semibold text-teal-300">Telefone:</label>
+          <input
+            type="text"
+            name="phone"
+            id="phone"
+            placeholder="(00) 00000-0000"
+            maxlength="15"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          <label for="address" class="font-semibold text-teal-300">Endereço:</label>
+          <input
+            type="text"
+            name="address"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+
+          <label for="notes" class="font-semibold text-teal-300">Observações:</label>
+          <textarea
+            name="notes"
+            rows="3"
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          ></textarea>
+
+          <button
+            type="submit"
+            class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-lg transition duration-200 border-2 border-teal-400 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl mt-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Salvar Cliente
+          </button>
+        </form>
+
+        <!-- Botões de Navegação -->
+        <div class="mt-6 flex flex-col gap-3">
+          <a
+            href="/clients"
+            class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition duration-200 border-2 border-gray-600 text-center shadow-md hover:shadow-lg"
+          >
+            Voltar para Clientes
+          </a>
+          <a
+            href="/dashboard"
+            class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition duration-200 border-2 border-gray-600 text-center shadow-md hover:shadow-lg"
+          >
+            Voltar ao Painel
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Máscara de telefone
+      document.getElementById('phone').addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 11) {
+          value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+          value = value.replace(/(\d)(\d{4})$/, '$1-$2');
+        }
+        e.target.value = value;
+      });
+    </script>
+
+    <script>
+      // Verifica se o usuário ainda está autenticado
+      (function() {
+        // Desabilita o botão voltar após logout - verifica se página veio do cache
+        window.addEventListener('pageshow', function(event) {
+          if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
+            // Página foi restaurada do cache - verifica autenticação
+            fetch('/api/check-auth', {
+              method: 'GET',
+              credentials: 'include'
+            })
+            .then(response => {
+              if (!response.ok) {
+                window.location.replace('/login');
+              }
+            })
+            .catch(() => {
+              window.location.replace('/login');
+            });
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
