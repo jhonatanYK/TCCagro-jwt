@@ -13,7 +13,21 @@ require('./models/Machine');
 require('./models/TaskMachine');
 
 // Sincroniza o banco de dados
-db.sync().then(() => {
+db.sync().then(async () => {
+  // Migração: adiciona coluna 'paid' se não existir
+  try {
+    const [results] = await db.query("PRAGMA table_info(tasks)");
+    const hasPaidColumn = results.some(column => column.name === 'paid');
+    
+    if (!hasPaidColumn) {
+      console.log('🔄 Adicionando coluna "paid" na tabela tasks...');
+      await db.query('ALTER TABLE tasks ADD COLUMN paid BOOLEAN DEFAULT 0');
+      console.log('✅ Coluna "paid" adicionada com sucesso!');
+    }
+  } catch (error) {
+    console.log('ℹ️ Migração já executada ou não necessária');
+  }
+  
   console.log('✅ Banco de dados sincronizado!');
   console.log('📊 Sistema otimizado com isolamento completo por usuário');
 }).catch(err => {
