@@ -101,6 +101,11 @@ const create = async (req, res) => {
   try {
     const { client_id, serviceName, location, description, machine_ids, start_times, hourly_rates } = req.body;
     
+    console.log('Dados recebidos:', { client_id, serviceName, location, description });
+    console.log('machine_ids:', machine_ids);
+    console.log('start_times:', start_times);
+    console.log('hourly_rates:', hourly_rates);
+    
     // Cria o serviço principal
     const task = await Task.create({ 
       client_id, 
@@ -116,6 +121,13 @@ const create = async (req, res) => {
       
       for (let i = 0; i < machine_ids.length; i++) {
         if (machine_ids[i] && start_times[i]) {
+          console.log(`Criando TaskMachine ${i + 1}:`, {
+            task_id: task.id,
+            machine_id: machine_ids[i],
+            startTime: start_times[i],
+            hourlyRate: hourly_rates[i] || 0
+          });
+          
           await TaskMachine.create({
             task_id: task.id,
             machine_id: machine_ids[i],
