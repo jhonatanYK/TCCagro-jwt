@@ -33,6 +33,16 @@ const Task = db.define('task', {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE'
   },
+  client_id: {
+    type: db.Sequelize.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'clients',
+      key: 'id'
+    },
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  },
 }, {
   indexes: [
     {
