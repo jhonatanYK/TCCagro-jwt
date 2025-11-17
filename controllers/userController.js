@@ -1,6 +1,13 @@
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const {generateToken} = require('../middlewares/authMiddleware')
+
+// Função para validar formato de email
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 const renderLogin = (req, res) => {
   // Limpa o cache ao exibir a página de login
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -45,9 +52,15 @@ const logout = (req, res) => {
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
+    
+    // Valida se o username é um email válido
+    if (!isValidEmail(username)) {
+      return res.render('users/login', { error: 'Por favor, insira um email válido!' });
+    }
+    
     const user = await User.findOne({ where: { username } });
     if (!user) {
-      return res.render('users/login', { error: 'Usuário não encontrado!' });
+      return res.render('users/login', { error: 'Email não encontrado!' });
     }
     const passwordIsValid = bcrypt.compareSync(password, user.password);
     if (!passwordIsValid) {
@@ -64,12 +77,18 @@ const login = async (req, res) => {
 const register = async(req, res) => {
   try {
     const { name, username, password } = req.body;
+    
+    // Valida se o username é um email válido
+    if (!isValidEmail(username)) {
+      return res.render('users/register', { error: 'Por favor, insira um email válido!' });
+    }
+    
     const newPassword = bcrypt.hashSync(password, 10);
 
     // Verifica se já existe usuário com o mesmo username
     const existingUser = await User.findOne({ where: { username } });
     if (existingUser) {
-      return res.render('users/register', { error: 'Nome de usuário já existe!' });
+      return res.render('users/register', { error: 'Este email já está cadastrado!' });
     }
 
     await User.create({
@@ -82,7 +101,7 @@ const register = async(req, res) => {
   } catch (error) {
     let errorMsg = 'Erro ao registrar usuário';
     if (error.name === 'SequelizeUniqueConstraintError') {
-      errorMsg = 'Nome de usuário já existe!';
+      errorMsg = 'Este email já está cadastrado!';
     }
     res.render('users/register', { error: errorMsg });
   }
