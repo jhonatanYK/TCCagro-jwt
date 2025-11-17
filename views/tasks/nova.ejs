@@ -138,6 +138,11 @@
     </div>
 
     <script>
+      // Função para mostrar notificações
+      function showNotification(message, type = 'info') {
+        alert(message);
+      }
+
       // Verifica se há dados disponíveis
       const hasData = <%= (typeof error === 'undefined' || !error) ? 'true' : 'false' %>;
       
