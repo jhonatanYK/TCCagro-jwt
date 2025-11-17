@@ -255,6 +255,26 @@ const complete = async (req, res) => {
   }
 };
 
+// Marca serviço como pago
+const markAsPaid = async (req, res) => {
+  try {
+    await Task.update({ paid: true }, { where: { id: req.params.id, user_id: req.userId } });
+    res.redirect('/tasks');
+  } catch (error) {
+    res.status(500).send({ error: 'Erro ao marcar como pago' });
+  }
+};
+
+// Marca serviço como não pago
+const markAsUnpaid = async (req, res) => {
+  try {
+    await Task.update({ paid: false }, { where: { id: req.params.id, user_id: req.userId } });
+    res.redirect('/tasks');
+  } catch (error) {
+    res.status(500).send({ error: 'Erro ao marcar como não pago' });
+  }
+};
+
 // Exclui serviço
 const remove = async (req, res) => {
   try {
@@ -280,5 +300,7 @@ module.exports = {
   renderEdit,
   edit,
   complete,
+  markAsPaid,
+  markAsUnpaid,
   remove,
 };

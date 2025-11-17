@@ -19,6 +19,10 @@ const Task = db.define('task', {
     type: db.Sequelize.BOOLEAN,
     defaultValue: false,
   },
+  paid: {
+    type: db.Sequelize.BOOLEAN,
+    defaultValue: false,
+  },
   user_id: {
     type: db.Sequelize.INTEGER,
     allowNull: false,

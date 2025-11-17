@@ -137,15 +137,51 @@
                       allFinished = false;
                     }
                   %>
-                  <% if (allFinished && task.machines?.length > 0) { %>
-                    <span class="text-green-400 font-semibold">✓ Finalizado</span>
-                  <% } else { %>
-                    <span class="text-yellow-400 font-semibold">⏳ Em Andamento</span>
-                  <% } %>
+                  <div class="flex flex-col gap-2 items-center">
+                    <% if (allFinished && task.machines?.length > 0) { %>
+                      <span class="text-green-400 font-semibold">✓ Finalizado</span>
+                      <% if (task.paid) { %>
+                        <span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">💰 PAGO</span>
+                      <% } else { %>
+                        <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">❌ NÃO PAGO</span>
+                      <% } %>
+                    <% } else { %>
+                      <span class="text-yellow-400 font-semibold">⏳ Em Andamento</span>
+                    <% } %>
+                  </div>
                 </td>
                 <td class="py-3 px-4">
                   <div class="flex gap-2 justify-center flex-wrap">
-                    <% if (!allFinished) { %>
+                    <% if (allFinished && task.machines?.length > 0) { %>
+                      <!-- Botões de Pagamento (quando finalizado) -->
+                      <% if (task.paid) { %>
+                        <form action="/tasks/mark-unpaid/<%= task.id %>" method="POST" style="display: inline;">
+                          <button
+                            type="submit"
+                            class="bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg px-4 py-2 font-bold transition border-2 border-yellow-500 inline-flex items-center gap-1 shadow-md hover:shadow-lg"
+                            title="Marcar como não pago"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Não Pago
+                          </button>
+                        </form>
+                      <% } else { %>
+                        <form action="/tasks/mark-paid/<%= task.id %>" method="POST" style="display: inline;">
+                          <button
+                            type="submit"
+                            class="bg-green-600 hover:bg-green-700 text-white rounded-lg px-4 py-2 font-bold transition border-2 border-green-500 inline-flex items-center gap-1 shadow-md hover:shadow-lg"
+                            title="Marcar como pago"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Pago
+                          </button>
+                        </form>
+                      <% } %>
+                    <% } else { %>
                       <!-- Botão Finalizar (quando ainda não foi finalizado) -->
                       <a
                         href="/tasks/edit/<%= task.id %>"
