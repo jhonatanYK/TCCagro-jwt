@@ -83,10 +83,6 @@ app.get('/api/check-auth', (req, res) => {
   });
 });
 
-// Rotas API (opcional)
-app.use('/api/user', require('./routes/userRoutes'));
-app.use('/api/task', require('./routes/taskRoutes'));
-
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });

@@ -19,6 +19,14 @@ const renderNew = (req, res) => {
 const createClient = async (req, res) => {
   try {
     const { name, email, phone, address, notes } = req.body;
+    
+    // Validação de endereço obrigatório
+    if (!address || address.trim() === '') {
+      return res.render('clients/nova', {
+        error: 'O campo Endereço é obrigatório!'
+      });
+    }
+    
     await Client.create({ 
       name, 
       email, 
@@ -53,6 +61,26 @@ const renderEdit = async (req, res) => {
 const updateClient = async (req, res) => {
   try {
     const { name, email, phone, address, notes } = req.body;
+    
+    // Validação de endereço obrigatório
+    if (!address || address.trim() === '') {
+      const client = await Client.findOne({
+        where: { 
+          id: req.params.id,
+          user_id: req.userId 
+        }
+      });
+      
+      if (!client) {
+        return res.status(404).send('Cliente não encontrado');
+      }
+      
+      return res.render('clients/editar', {
+        client,
+        error: 'O campo Endereço é obrigatório!'
+      });
+    }
+    
     await Client.update(
       { name, email, phone, address, notes },
       { where: { 

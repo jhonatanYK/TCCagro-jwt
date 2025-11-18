@@ -101,6 +101,26 @@ const create = async (req, res) => {
   try {
     let { client_id, serviceName, location, description, machine_ids, start_times, hourly_rates } = req.body;
     
+    // Validação de endereço/localidade
+    if (!location || location.trim() === '') {
+      const Client = require('../models/Client');
+      const Machine = require('../models/Machine');
+      const clients = await Client.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']]
+      });
+      const machines = await Machine.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']]
+      });
+      
+      return res.render('tasks/nova', { 
+        clients, 
+        machines,
+        error: 'O campo Endereço/Localidade é obrigatório!'
+      });
+    }
+    
     // Garante que machine_ids seja sempre um array
     if (!machine_ids) {
       machine_ids = [];
@@ -122,6 +142,79 @@ const create = async (req, res) => {
       hourly_rates = [hourly_rates];
     }
     
+    // Validação 1: Verifica se há máquinas duplicadas no mesmo serviço
+    const uniqueMachineIds = machine_ids.filter(id => id); // Remove valores vazios
+    const hasDuplicates = uniqueMachineIds.length !== new Set(uniqueMachineIds).size;
+    
+    if (hasDuplicates) {
+      const Client = require('../models/Client');
+      const Machine = require('../models/Machine');
+      const clients = await Client.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']]
+      });
+      const machines = await Machine.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']]
+      });
+      
+      return res.render('tasks/nova', { 
+        clients, 
+        machines,
+        error: 'Não é possível adicionar a mesma máquina mais de uma vez no mesmo serviço!'
+      });
+    }
+    
+    // Validação 2: Verifica se alguma máquina já está em uso em serviço não finalizado
+    const TaskMachine = require('../models/TaskMachine');
+    const Machine = require('../models/Machine');
+    const db = require('../db');
+    
+    for (let i = 0; i < machine_ids.length; i++) {
+      if (machine_ids[i]) {
+        // Busca máquinas em uso (sem endTime) em qualquer serviço do usuário
+        const machinesInUse = await db.query(
+          `SELECT tm.*, t.serviceName 
+           FROM task_machines tm 
+           INNER JOIN tasks t ON tm.task_id = t.id 
+           WHERE tm.machine_id = ? 
+           AND tm.endTime IS NULL 
+           AND t.user_id = ?`,
+          {
+            replacements: [machine_ids[i], req.userId],
+            type: db.Sequelize.QueryTypes.SELECT
+          }
+        );
+
+        if (machinesInUse.length > 0) {
+          // Busca o nome da máquina
+          const machine = await Machine.findOne({
+            where: { id: machine_ids[i], user_id: req.userId }
+          });
+          
+          const machineName = machine ? machine.name : 'Máquina';
+          const serviceName = machinesInUse[0].serviceName;
+          
+          // Renderiza novamente o formulário com mensagem de erro
+          const Client = require('../models/Client');
+          const clients = await Client.findAll({ 
+            where: { user_id: req.userId },
+            order: [['name', 'ASC']]
+          });
+          const machines = await Machine.findAll({ 
+            where: { user_id: req.userId },
+            order: [['name', 'ASC']]
+          });
+          
+          return res.render('tasks/nova', { 
+            clients, 
+            machines,
+            error: `A máquina "${machineName}" já está em uso no serviço "${serviceName}" que ainda não foi finalizado! Finalize o serviço atual antes de usar esta máquina.`
+          });
+        }
+      }
+    }
+    
     // Cria o serviço principal
     const task = await Task.create({ 
       client_id: client_id || null,
@@ -132,8 +225,6 @@ const create = async (req, res) => {
     });
 
     // Adiciona as máquinas ao serviço
-    const TaskMachine = require('../models/TaskMachine');
-    
     for (let i = 0; i < machine_ids.length; i++) {
       if (machine_ids[i] && start_times[i]) {
         await TaskMachine.create({
@@ -223,6 +314,56 @@ const edit = async (req, res) => {
   try {
     const { client_id, serviceName, location, description, machine_ids, end_times, task_machine_ids } = req.body;
     const TaskMachine = require('../models/TaskMachine');
+    
+    // Validação de endereço/localidade (quando editando informações básicas)
+    if (location !== undefined && (!location || location.trim() === '')) {
+      const task = await Task.findOne({ 
+        where: { id: req.params.id, user_id: req.userId },
+        include: [{ model: Client, as: 'client' }]
+      });
+      
+      if (!task) return res.status(404).send('Serviço não encontrado');
+      
+      const taskData = task.toJSON();
+      const taskMachines = await TaskMachine.findAll({
+        where: { task_id: task.id }
+      });
+      
+      taskData.machines = [];
+      for (const tm of taskMachines) {
+        const machine = await Machine.findOne({
+          where: { id: tm.machine_id, user_id: req.userId }
+        });
+        if (machine) {
+          const machineData = machine.toJSON();
+          machineData.task_machine = {
+            id: tm.id,
+            startTime: tm.startTime,
+            endTime: tm.endTime,
+            hoursWorked: tm.hoursWorked,
+            totalAmount: tm.totalAmount,
+            hourlyRate: tm.hourlyRate
+          };
+          taskData.machines.push(machineData);
+        }
+      }
+      
+      const clients = await Client.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']] 
+      });
+      const machines = await Machine.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']] 
+      });
+      
+      return res.render('tasks/editar', { 
+        task: taskData, 
+        clients, 
+        machines,
+        error: 'O campo Endereço/Localidade é obrigatório!'
+      });
+    }
     
     // Atualiza o serviço principal
     await Task.update(

@@ -13,6 +13,11 @@
       </div>
 
       <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-teal-600">
+        <% if (typeof error !== 'undefined' && error) { %>
+          <div class="mb-4 bg-red-500 bg-opacity-20 border border-red-500 text-red-300 px-4 py-3 rounded-lg">
+            <%= error %>
+          </div>
+        <% } %>
         <form action="/clients/edit/<%= client.id %>" method="POST" class="flex flex-col gap-4">
           <label for="name" class="font-semibold text-teal-300">Nome:</label>
           <input
@@ -42,11 +47,13 @@
             class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
 
-          <label for="address" class="font-semibold text-teal-300">Endereço:</label>
+          <label for="address" class="font-semibold text-teal-300">Endereço:*</label>
           <input
             type="text"
             name="address"
             value="<%= client.address || '' %>"
+            required
+            placeholder="Digite o endereço completo"
             class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
 

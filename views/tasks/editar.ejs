@@ -153,12 +153,13 @@
             class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500 resize-y"
           ><%= task.serviceName %></textarea>
 
-          <label for="location" class="font-semibold text-teal-300">Endereço / Localidade</label>
+          <label for="location" class="font-semibold text-teal-300">Endereço / Localidade*</label>
           <input
             type="text"
             name="location"
             value="<%= task.location || '' %>"
             placeholder="Endereço / Localidade"
+            required
             class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500"
           />
 
