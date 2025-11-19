@@ -31,10 +31,6 @@ const Machine = db.define('Machine', {
   indexes: [
     {
       fields: ['user_id']
-    },
-    {
-      unique: true,
-      fields: ['user_id', 'name']
     }
   ]
 });

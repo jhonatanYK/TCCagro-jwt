@@ -2,7 +2,7 @@ const Machine = require('../models/Machine');
 
 // Renderizar formulário de nova máquina
 exports.renderNewForm = async (req, res) => {
-  res.render('machines/nova');
+  res.render('machines/nova', { error: null, formData: {} });
 };
 
 // Criar nova máquina
@@ -49,7 +49,7 @@ exports.renderEditForm = async (req, res) => {
     if (!machine) {
       return res.status(404).send('Máquina não encontrada');
     }
-    res.render('machines/editar', { machine });
+    res.render('machines/editar', { machine, error: null });
   } catch (error) {
     console.error('Erro ao buscar máquina:', error);
     res.status(500).send('Erro ao buscar máquina');

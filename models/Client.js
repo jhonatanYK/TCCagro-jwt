@@ -39,10 +39,6 @@ const Client = db.define('client', {
   indexes: [
     {
       fields: ['user_id']
-    },
-    {
-      unique: true,
-      fields: ['user_id', 'name']
     }
   ]
 });
