@@ -20,25 +20,28 @@ const createClient = async (req, res) => {
   try {
     const { name, email, phone, address, addressNumber, notes } = req.body;
     
-    // Validação de endereço obrigatório
+    // Converte email para minúsculo por segurança
+    const emailLower = email ? email.trim().toLowerCase() : '';
+    
+    // Valida endereço obrigatório
     if (!address || address.trim() === '') {
       return res.render('clients/nova', {
         error: 'O campo Endereço é obrigatório!',
-        formData: { name, email, phone, address, addressNumber, notes }
+        formData: { name, email: emailLower, phone, address, addressNumber, notes }
       });
     }
     
-    // Validação de número obrigatório
+    // Valida número obrigatório
     if (!addressNumber || addressNumber.trim() === '') {
       return res.render('clients/nova', {
         error: 'O campo Número é obrigatório!',
-        formData: { name, email, phone, address, addressNumber, notes }
+        formData: { name, email: emailLower, phone, address, addressNumber, notes }
       });
     }
     
     await Client.create({ 
       name, 
-      email, 
+      email: emailLower, 
       phone, 
       address,
       addressNumber, 
@@ -72,6 +75,9 @@ const renderEdit = async (req, res) => {
 const updateClient = async (req, res) => {
   try {
     const { name, email, phone, address, addressNumber, notes } = req.body;
+    
+    // Converte email para minúsculo por segurança
+    const emailLower = email ? email.trim().toLowerCase() : '';
     
     // Validação de endereço obrigatório
     if (!address || address.trim() === '') {
@@ -112,7 +118,7 @@ const updateClient = async (req, res) => {
     }
     
     await Client.update(
-      { name, email, phone, address, addressNumber, notes },
+      { name, email: emailLower, phone, address, addressNumber, notes },
       { where: { 
         id: req.params.id,
         user_id: req.userId 
