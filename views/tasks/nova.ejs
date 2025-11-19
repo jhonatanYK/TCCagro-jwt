@@ -206,19 +206,21 @@
       }
 
       // Verifica se há dados disponíveis
-      const hasData = <%= (typeof error === 'undefined' || !error) ? 'true' : 'false' %>;
+      const hasData = <% if (typeof error === 'undefined' || !error) { %>true<% } else { %>false<% } %>;
       
       if (!hasData) {
         // Se não há dados, não executa o script de máquinas
         console.log('Aguardando cadastro de clientes e máquinas');
       } else {
         // Dados das máquinas disponíveis
-        const availableMachines = <%- JSON.stringify(machines.map(m => ({ 
-          id: m.id, 
-          name: m.name, 
-          type: m.type, 
-          hourlyRate: m.hourlyRate 
-        }))) %>;
+        const availableMachines = <%-
+          JSON.stringify(machines.map(m => ({ 
+            id: m.id, 
+            name: m.name, 
+            type: m.type, 
+            hourlyRate: m.hourlyRate 
+          })))
+        %>;
         
         let machineCounter = 0;
 

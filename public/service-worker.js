@@ -32,11 +32,20 @@ self.addEventListener('activate', event => {
 
 // Intercepta requisições
 self.addEventListener('fetch', event => {
+  // Não fazer cache de requisições POST
+  if (event.request.method === 'POST') {
+    return event.respondWith(fetch(event.request));
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then(response => {
         // Retorna do cache se disponível, senão busca na rede
         return response || fetch(event.request);
+      })
+      .catch(() => {
+        // Se falhar, retorna a página de índice como fallback
+        return caches.match('/');
       })
   );
 });
