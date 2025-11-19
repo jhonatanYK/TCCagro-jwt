@@ -17,6 +17,10 @@ const Client = db.define('client', {
     type: db.Sequelize.STRING,
     allowNull: true,
   },
+  addressNumber: {
+    type: db.Sequelize.STRING,
+    allowNull: true,
+  },
   notes: {
     type: db.Sequelize.TEXT,
     allowNull: true,

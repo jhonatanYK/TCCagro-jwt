@@ -13,17 +13,26 @@ const renderList = async (req, res) => {
 };
 
 const renderNew = (req, res) => {
-  res.render('clients/nova');
+  res.render('clients/nova', { error: null, formData: {} });
 };
 
 const createClient = async (req, res) => {
   try {
-    const { name, email, phone, address, notes } = req.body;
+    const { name, email, phone, address, addressNumber, notes } = req.body;
     
     // Validação de endereço obrigatório
     if (!address || address.trim() === '') {
       return res.render('clients/nova', {
-        error: 'O campo Endereço é obrigatório!'
+        error: 'O campo Endereço é obrigatório!',
+        formData: { name, email, phone, address, addressNumber, notes }
+      });
+    }
+    
+    // Validação de número obrigatório
+    if (!addressNumber || addressNumber.trim() === '') {
+      return res.render('clients/nova', {
+        error: 'O campo Número é obrigatório!',
+        formData: { name, email, phone, address, addressNumber, notes }
       });
     }
     
@@ -31,13 +40,15 @@ const createClient = async (req, res) => {
       name, 
       email, 
       phone, 
-      address, 
+      address,
+      addressNumber, 
       notes,
       user_id: req.userId 
     });
     res.redirect('/clients');
   } catch (error) {
-    res.status(500).send('Erro ao criar cliente');
+    console.error('Erro ao criar cliente:', error);
+    res.status(500).send('Erro ao criar cliente: ' + error.message);
   }
 };
 
@@ -52,7 +63,7 @@ const renderEdit = async (req, res) => {
     if (!client) {
       return res.status(404).send('Cliente não encontrado');
     }
-    res.render('clients/editar', { client });
+    res.render('clients/editar', { client, error: null });
   } catch (error) {
     res.status(500).send('Erro ao carregar cliente');
   }
@@ -60,7 +71,7 @@ const renderEdit = async (req, res) => {
 
 const updateClient = async (req, res) => {
   try {
-    const { name, email, phone, address, notes } = req.body;
+    const { name, email, phone, address, addressNumber, notes } = req.body;
     
     // Validação de endereço obrigatório
     if (!address || address.trim() === '') {
@@ -81,8 +92,27 @@ const updateClient = async (req, res) => {
       });
     }
     
+    // Validação de número obrigatório
+    if (!addressNumber || addressNumber.trim() === '') {
+      const client = await Client.findOne({
+        where: { 
+          id: req.params.id,
+          user_id: req.userId 
+        }
+      });
+      
+      if (!client) {
+        return res.status(404).send('Cliente não encontrado');
+      }
+      
+      return res.render('clients/editar', {
+        client,
+        error: 'O campo Número é obrigatório!'
+      });
+    }
+    
     await Client.update(
-      { name, email, phone, address, notes },
+      { name, email, phone, address, addressNumber, notes },
       { where: { 
         id: req.params.id,
         user_id: req.userId 

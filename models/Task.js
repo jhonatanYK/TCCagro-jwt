@@ -11,6 +11,10 @@ const Task = db.define('task', {
     type: db.Sequelize.STRING,
     allowNull: true,
   },
+  locationNumber: {
+    type: db.Sequelize.STRING,
+    allowNull: true,
+  },
   description: {
     type: db.Sequelize.TEXT,
     allowNull: true,

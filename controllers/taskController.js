@@ -99,7 +99,7 @@ const renderNew = async (req, res) => {
 // Cria novo serviço
 const create = async (req, res) => {
   try {
-    let { client_id, serviceName, location, description, machine_ids, start_times, hourly_rates } = req.body;
+    let { client_id, serviceName, location, locationNumber, description, machine_ids, start_times, hourly_rates } = req.body;
     
     // Validação de endereço/localidade
     if (!location || location.trim() === '') {
@@ -118,6 +118,26 @@ const create = async (req, res) => {
         clients, 
         machines,
         error: 'O campo Endereço/Localidade é obrigatório!'
+      });
+    }
+    
+    // Validação de número obrigatório
+    if (!locationNumber || locationNumber.trim() === '') {
+      const Client = require('../models/Client');
+      const Machine = require('../models/Machine');
+      const clients = await Client.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']]
+      });
+      const machines = await Machine.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']]
+      });
+      
+      return res.render('tasks/nova', { 
+        clients, 
+        machines,
+        error: 'O campo Número é obrigatório!'
       });
     }
     
@@ -220,6 +240,7 @@ const create = async (req, res) => {
       client_id: client_id || null,
       serviceName: serviceName || '',
       location: location || '',
+      locationNumber: locationNumber || '',
       description: description || '',
       user_id: req.userId
     });
@@ -312,7 +333,7 @@ const renderEdit = async (req, res) => {
 // Edita serviço
 const edit = async (req, res) => {
   try {
-    const { client_id, serviceName, location, description, machine_ids, end_times, task_machine_ids } = req.body;
+    const { client_id, serviceName, location, locationNumber, description, machine_ids, end_times, task_machine_ids } = req.body;
     const TaskMachine = require('../models/TaskMachine');
     
     // Validação de endereço/localidade (quando editando informações básicas)
@@ -365,9 +386,59 @@ const edit = async (req, res) => {
       });
     }
     
+    // Validação de número obrigatório (quando editando informações básicas)
+    if (locationNumber !== undefined && (!locationNumber || locationNumber.trim() === '')) {
+      const task = await Task.findOne({ 
+        where: { id: req.params.id, user_id: req.userId },
+        include: [{ model: Client, as: 'client' }]
+      });
+      
+      if (!task) return res.status(404).send('Serviço não encontrado');
+      
+      const taskData = task.toJSON();
+      const taskMachines = await TaskMachine.findAll({
+        where: { task_id: task.id }
+      });
+      
+      taskData.machines = [];
+      for (const tm of taskMachines) {
+        const machine = await Machine.findOne({
+          where: { id: tm.machine_id, user_id: req.userId }
+        });
+        if (machine) {
+          const machineData = machine.toJSON();
+          machineData.task_machine = {
+            id: tm.id,
+            startTime: tm.startTime,
+            endTime: tm.endTime,
+            hoursWorked: tm.hoursWorked,
+            totalAmount: tm.totalAmount,
+            hourlyRate: tm.hourlyRate
+          };
+          taskData.machines.push(machineData);
+        }
+      }
+      
+      const clients = await Client.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']] 
+      });
+      const machines = await Machine.findAll({ 
+        where: { user_id: req.userId },
+        order: [['name', 'ASC']] 
+      });
+      
+      return res.render('tasks/editar', { 
+        task: taskData, 
+        clients, 
+        machines,
+        error: 'O campo Número é obrigatório!'
+      });
+    }
+    
     // Atualiza o serviço principal
     await Task.update(
-      { client_id, serviceName, location, description }, 
+      { client_id, serviceName, location, locationNumber, description }, 
       { where: { id: req.params.id, user_id: req.userId } }
     );
 
