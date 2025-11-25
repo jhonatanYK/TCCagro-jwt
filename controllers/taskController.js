@@ -453,6 +453,11 @@ const edit = async (req, res) => {
             const endTime = parseFloat(end_times[i]) || 0;
             const hourlyRate = parseFloat(taskMachine.hourlyRate) || 0;
             
+            // Validação: não permite hora final igual a 0
+            if (endTime === 0 || end_times[i].trim() === '' || end_times[i].trim() === '0') {
+              return res.status(400).send('Erro: A hora final não pode ser 0 ou vazia!');
+            }
+            
             const hoursWorked = endTime - startTime;
             const totalAmount = hoursWorked * hourlyRate;
             
