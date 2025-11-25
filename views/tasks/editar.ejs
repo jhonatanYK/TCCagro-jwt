@@ -13,7 +13,20 @@
       </div>
 
       <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-2xl border border-teal-600">
-        <form action="/tasks/edit/<%= task.id %>" method="POST" class="flex flex-col gap-4">
+        
+        <!-- Alerta de Erro (inicialmente oculto) -->
+        <div id="errorAlert" class="hidden mb-6 p-4 bg-red-900 border-l-4 border-red-500 text-red-200 rounded">
+          <div class="flex items-start">
+            <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <p id="errorMessage" class="font-semibold"></p>
+            </div>
+          </div>
+        </div>
+        
+        <form id="editTaskForm" action="/tasks/edit/<%= task.id %>" method="POST" class="flex flex-col gap-4">
           
           <% 
             // Verifica se tem máquinas associadas
@@ -90,8 +103,7 @@
                           placeholder="Ex: <%= (parseFloat(tm.startTime) + 10).toFixed(1) %>"
                           min="0.1"
                           required
-                          oninput="if(parseFloat(this.value) === 0) { alert('A hora final não pode ser 0!'); this.value = ''; }"
-                          class="w-full bg-gray-800 text-white border border-yellow-500 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                          class="end-time-input w-full bg-gray-800 text-white border border-yellow-500 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                         />
                       </div>
                     <% } else { %>
@@ -236,6 +248,52 @@
             });
           }
         });
+        
+        // Validação de hora final
+        const form = document.getElementById('editTaskForm');
+        const endTimeInputs = document.querySelectorAll('.end-time-input');
+        const errorAlert = document.getElementById('errorAlert');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        function showError(message) {
+          errorMessage.textContent = message;
+          errorAlert.classList.remove('hidden');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          setTimeout(() => {
+            errorAlert.classList.add('hidden');
+          }, 5000);
+        }
+        
+        // Validação em tempo real
+        endTimeInputs.forEach(input => {
+          input.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            if (value === 0 || this.value.trim() === '0') {
+              this.value = '';
+              showError('⚠️ A hora final não pode ser 0!');
+            }
+          });
+        });
+        
+        // Validação no submit
+        if (form) {
+          form.addEventListener('submit', function(e) {
+            let hasError = false;
+            
+            endTimeInputs.forEach(input => {
+              const value = parseFloat(input.value);
+              if (value === 0 || input.value.trim() === '0' || input.value.trim() === '') {
+                hasError = true;
+                showError('⚠️ Todas as horas finais devem ser preenchidas e diferentes de 0!');
+              }
+            });
+            
+            if (hasError) {
+              e.preventDefault();
+              return false;
+            }
+          });
+        }
       })();
     </script>
   </body>
