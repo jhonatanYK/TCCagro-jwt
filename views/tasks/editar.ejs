@@ -2,6 +2,7 @@
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Serviço - Gestor de Serviços</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   </head>
@@ -159,14 +160,24 @@
             <% }) %>
           </select>
 
-          <label for="serviceName" class="font-semibold text-teal-300">Nome do Serviço*</label>
-          <textarea
+          <label for="serviceName" class="font-semibold text-teal-300">Tipo de Serviço*</label>
+          <select
             name="serviceName"
-            placeholder="Descreva o serviço realizado..."
             required
-            rows="3"
-            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500 resize-y"
-          ><%= task.serviceName %></textarea>
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <option value="" disabled>Selecione o tipo de serviço</option>
+            <option value="Terraplanagem" <%= task.serviceName === 'Terraplanagem' ? 'selected' : '' %>>Terraplanagem</option>
+            <option value="Gradear" <%= task.serviceName === 'Gradear' ? 'selected' : '' %>>Gradear</option>
+            <option value="Plantar" <%= task.serviceName === 'Plantar' ? 'selected' : '' %>>Plantar</option>
+            <option value="Colheita" <%= task.serviceName === 'Colheita' ? 'selected' : '' %>>Colheita</option>
+            <option value="Pulverização" <%= task.serviceName === 'Pulverização' ? 'selected' : '' %>>Pulverização</option>
+            <option value="Adubação" <%= task.serviceName === 'Adubação' ? 'selected' : '' %>>Adubação</option>
+            <option value="Roçada" <%= task.serviceName === 'Roçada' ? 'selected' : '' %>>Roçada</option>
+            <option value="Transporte" <%= task.serviceName === 'Transporte' ? 'selected' : '' %>>Transporte</option>
+            <option value="Irrigação" <%= task.serviceName === 'Irrigação' ? 'selected' : '' %>>Irrigação</option>
+            <option value="Outros" <%= task.serviceName === 'Outros' ? 'selected' : '' %>>Outros</option>
+          </select>
 
           <label for="location" class="font-semibold text-teal-300">Endereço / Localidade*</label>
           <input
@@ -180,13 +191,13 @@
 
           <label for="locationNumber" class="font-semibold text-teal-300">Número:*</label>
           <input
-            type="text"
+            type="number"
             name="locationNumber"
             value="<%= task.locationNumber || '' %>"
             placeholder="Número do local"
             required
-            pattern="[0-9]*"
-            inputmode="numeric"
+            min="1"
+            step="1"
             class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500"
           />
 

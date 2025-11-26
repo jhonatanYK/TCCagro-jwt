@@ -263,6 +263,8 @@ const create = async (req, res) => {
     res.redirect('/tasks');
   } catch (error) {
     console.error('Erro ao criar serviço:', error);
+    console.error('Detalhes:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({ error: 'Erro ao criar serviço: ' + error.message });
   }
 };
@@ -624,10 +626,42 @@ const renderHistory = async (req, res) => {
     const TaskHistory = require('../models/TaskHistory');
     const TaskHistoryMachine = require('../models/TaskHistoryMachine');
     
-    // Busca histórico independente
-    const histories = await TaskHistory.findAll({ 
+    // Pega o filtro de cliente da query string
+    const clientFilter = req.query.client || '';
+    
+    // Paginação
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10; // 10 serviços por página
+    const offset = (page - 1) * limit;
+    
+    // Busca todos os clientes únicos do histórico para o filtro
+    const allHistories = await TaskHistory.findAll({
       where: { user_id: req.userId },
-      order: [['completedAt', 'DESC']]
+      attributes: ['clientName'],
+      group: ['clientName'],
+      order: [['clientName', 'ASC']]
+    });
+    
+    const clients = allHistories && allHistories.length > 0 
+      ? allHistories.map(h => ({ clientName: h.clientName }))
+      : [];
+    
+    // Monta a query com filtro opcional
+    const whereClause = { user_id: req.userId };
+    if (clientFilter) {
+      whereClause.clientName = clientFilter;
+    }
+    
+    // Conta total de registros para paginação
+    const totalCount = await TaskHistory.count({ where: whereClause });
+    const totalPages = Math.ceil(totalCount / limit);
+    
+    // Busca histórico com filtro e paginação
+    const histories = await TaskHistory.findAll({ 
+      where: whereClause,
+      order: [['completedAt', 'DESC']],
+      limit: limit,
+      offset: offset
     });
     
     // Converte para formato esperado pela view
@@ -664,7 +698,14 @@ const renderHistory = async (req, res) => {
       tasksWithMachines.push(historyData);
     }
     
-    res.render('tasks/historico', { tasks: tasksWithMachines });
+    res.render('tasks/historico', { 
+      tasks: tasksWithMachines,
+      clients: clients,
+      selectedClient: clientFilter,
+      currentPage: page,
+      totalPages: totalPages,
+      totalCount: totalCount
+    });
   } catch (error) {
     console.error('Erro ao buscar histórico:', error);
     res.status(500).send({ error: 'Erro ao buscar histórico: ' + error.message });

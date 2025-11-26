@@ -2,6 +2,7 @@
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adicionar Serviço - Gestor de Serviços</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   </head>
@@ -61,15 +62,23 @@
             <% }) %>
           </select>
 
-          <label for="serviceName" class="font-semibold text-teal-300">Nome do Serviço*</label>
-          <textarea
+          <label for="serviceName" class="font-semibold text-teal-300">Tipo de Serviço*</label>
+          <select
             name="serviceName"
-            placeholder="Descreva o serviço realizado..."
             required
             <%= (typeof error !== 'undefined' && error) ? 'disabled' : '' %>
-            rows="3"
-            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500 resize-y"
-          ></textarea>
+            class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <option value="" disabled selected>Selecione o tipo de serviço</option>
+            <option value="Terraplanagem">Terraplanagem</option>
+            <option value="Gradear">Gradear</option>
+            <option value="Plantar">Plantar</option>
+            <option value="Pulverização">Pulverização</option>
+            <option value="Adubação">Adubação</option>
+            <option value="Roçada">Roçada</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Outros">Outros</option>
+          </select>
 
           <!-- Seleção de Múltiplas Máquinas -->
           <div class="border border-teal-600 rounded-lg p-4 bg-gray-700">
@@ -104,12 +113,12 @@
 
           <label for="locationNumber" class="font-semibold text-teal-300">Número:*</label>
           <input
-            type="text"
+            type="number"
             name="locationNumber"
             placeholder="Número do local"
             required
-            pattern="[0-9]*"
-            inputmode="numeric"
+            min="1"
+            step="1"
             <%= (typeof error !== 'undefined' && error) ? 'disabled' : '' %>
             class="bg-gray-700 text-white border border-gray-600 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-500"
           />

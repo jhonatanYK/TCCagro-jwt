@@ -3,7 +3,7 @@ const db = require('../db');
 const TaskHistory = db.define('task_history', {
   task_id: {
     type: db.Sequelize.INTEGER,
-    allowNull: false,
+    allowNull: true, // Permitir null para históricos antigos
   },
   serviceName: {
     type: db.Sequelize.STRING,
