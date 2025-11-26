@@ -11,6 +11,8 @@ const port = process.env.PORT || 3000;
 require('./models/Task');
 require('./models/Machine');
 require('./models/TaskMachine');
+require('./models/TaskHistory');
+require('./models/TaskHistoryMachine');
 
 // Sincroniza o banco de dados
 const syncOptions = process.env.FORCE_SYNC === 'true' ? { alter: true } : {};

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Histórico de Serviços - Gestor de Serviços</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-gray-900 text-white">
+    <div class="min-h-screen flex flex-col justify-center items-center px-4 py-8">
+      <div class="flex flex-col items-center mb-8">
+        <svg class="w-16 h-16 mb-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h2 class="text-2xl font-bold text-purple-400">Histórico de Serviços</h2>
+        <p class="text-gray-400 mt-2">Todos os serviços concluídos e finalizados</p>
+      </div>
+
+      <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-6xl border border-purple-600">
+        
+        <% if (tasks.length === 0) { %>
+          <!-- Mensagem quando não há histórico -->
+          <div class="text-center py-12">
+            <svg class="w-24 h-24 mx-auto mb-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p class="text-gray-400 text-lg mb-2">Nenhum serviço finalizado ainda</p>
+            <p class="text-gray-500 text-sm">Os serviços aparecerão aqui após serem finalizados em "Ver Serviços"</p>
+          </div>
+        <% } else { %>
+          <!-- Lista de Serviços Históricos (Formato Simples) -->
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-gray-700">
+                  <th class="text-left py-3 px-4 text-purple-300">Cliente</th>
+                  <th class="text-left py-3 px-4 text-purple-300">Serviço</th>
+                  <th class="text-left py-3 px-4 text-purple-300">Máquina</th>
+                  <th class="text-left py-3 px-4 text-purple-300">Horas</th>
+                  <th class="text-left py-3 px-4 text-purple-300">Valor</th>
+                  <th class="text-center py-3 px-4 text-purple-300">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% tasks.forEach(task => { %>
+                  <tr class="border-b border-gray-700 hover:bg-gray-700">
+                    <td class="py-3 px-4 text-white"><%= task.client.name %></td>
+                    <td class="py-3 px-4 text-white">
+                      <div class="font-semibold"><%= task.serviceName %></div>
+                      <% if (task.location) { %>
+                        <div class="text-xs text-gray-400"><%= task.location %><% if (task.locationNumber) { %>, <%= task.locationNumber %><% } %></div>
+                      <% } %>
+                    </td>
+                    <td class="py-3 px-4 text-gray-300">
+                      <% if (task.machines && task.machines.length > 0) { %>
+                        <% task.machines.forEach(function(machine, index) { %>
+                          <div class="<%= index > 0 ? 'mt-1 pt-1 border-t border-gray-600' : '' %>">
+                            <%= machine.name %>
+                          </div>
+                        <% }); %>
+                      <% } else { %>
+                        -
+                      <% } %>
+                    </td>
+                    <td class="py-3 px-4 text-gray-300">
+                      <% if (task.machines && task.machines.length > 0) { %>
+                        <% task.machines.forEach(function(machine, index) { %>
+                          <% const tm = machine.task_machine; %>
+                          <div class="<%= index > 0 ? 'mt-1 pt-1 border-t border-gray-600' : '' %> text-sm">
+                            <% if (tm && tm.endTime) { %>
+                              <%= parseFloat(tm.hoursWorked).toFixed(1).replace('.', ',') %>h
+                            <% } else { %>
+                              -
+                            <% } %>
+                          </div>
+                        <% }); %>
+                      <% } else { %>
+                        -
+                      <% } %>
+                    </td>
+                    <td class="py-3 px-4 text-green-400">
+                      <% 
+                        let totalService = 0;
+                        if (task.machines && task.machines.length > 0) {
+                          task.machines.forEach(machine => {
+                            if (machine.task_machine && machine.task_machine.totalAmount) {
+                              totalService += parseFloat(machine.task_machine.totalAmount || 0);
+                            }
+                          });
+                        }
+                      %>
+                      <span class="font-bold">R$ <%= totalService.toFixed(2).replace('.', ',') %></span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                      <span class="px-3 py-1 rounded-full text-xs font-semibold <%= task.paid ? 'bg-green-600 text-white' : 'bg-red-600 text-white' %>">
+                        <%= task.paid ? '✓ Pago' : '❌ Não Pago' %>
+                      </span>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+
+        <!-- Botões de Navegação -->
+        <div class="mt-8 flex flex-col gap-3">
+          <a
+            href="/dashboard"
+            class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition duration-200 border-2 border-gray-600 text-center shadow-md hover:shadow-lg"
+          >
+            Voltar ao Painel
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        // Desabilita o botão voltar após logout - verifica se página veio do cache
+        window.addEventListener('pageshow', function(event) {
+          if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
+            // Página foi restaurada do cache - verifica autenticação
+            fetch('/api/check-auth', {
+              method: 'GET',
+              credentials: 'include'
+            })
+            .then(response => {
+              if (!response.ok) {
+                window.location.replace('/login');
+              }
+            })
+            .catch(() => {
+              window.location.replace('/login');
+            });
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

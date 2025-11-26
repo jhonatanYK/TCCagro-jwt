@@ -444,6 +444,7 @@ const edit = async (req, res) => {
 
     // Atualiza os horímetros finais das máquinas
     if (task_machine_ids && Array.isArray(task_machine_ids)) {
+      
       for (let i = 0; i < task_machine_ids.length; i++) {
         if (task_machine_ids[i] && end_times && end_times[i]) {
           const taskMachine = await TaskMachine.findByPk(task_machine_ids[i]);
@@ -472,6 +473,74 @@ const edit = async (req, res) => {
           }
         }
       }
+      
+      // Verifica se TODAS as máquinas do serviço foram finalizadas
+      const allTaskMachines = await TaskMachine.findAll({
+        where: { task_id: req.params.id },
+        raw: true
+      });
+      
+      // Verifica se todas as máquinas têm endTime preenchido
+      const allFinished = allTaskMachines.length > 0 && allTaskMachines.every(tm => {
+        return tm.endTime !== null && tm.endTime !== '' && parseFloat(tm.endTime) > 0;
+      });
+      
+      // Se todas as máquinas foram finalizadas, salva no histórico
+      if (allFinished) {
+        
+        // Marca como completo
+        await Task.update(
+          { completed: true },
+          { where: { id: req.params.id, user_id: req.userId } }
+        );
+        
+        // Salva no histórico independente
+        const TaskHistory = require('../models/TaskHistory');
+        const TaskHistoryMachine = require('../models/TaskHistoryMachine');
+        
+        // Busca dados completos do serviço
+        const task = await Task.findByPk(req.params.id, {
+          include: [{ model: Client, as: 'client' }]
+        });
+        
+        // Calcula total do serviço
+        let totalService = 0;
+        allTaskMachines.forEach(tm => {
+          totalService += parseFloat(tm.totalAmount || 0);
+        });
+        
+        // Cria registro no histórico
+        const history = await TaskHistory.create({
+          task_id: task.id,
+          serviceName: task.serviceName,
+          location: task.location,
+          locationNumber: task.locationNumber,
+          description: task.description,
+          clientName: task.client.name,
+          clientEmail: task.client.email || '',
+          paid: task.paid || false,
+          totalAmount: totalService,
+          user_id: req.userId,
+          completedAt: new Date()
+        });
+        
+        // Salva máquinas do histórico
+        for (const tm of allTaskMachines) {
+          const machine = await Machine.findByPk(tm.machine_id);
+          if (machine) {
+            await TaskHistoryMachine.create({
+              history_id: history.id,
+              machineName: machine.name,
+              machineType: machine.type,
+              startTime: tm.startTime,
+              endTime: tm.endTime,
+              hoursWorked: tm.hoursWorked,
+              hourlyRate: tm.hourlyRate,
+              totalAmount: tm.totalAmount
+            });
+          }
+        }
+      }
     }
 
     res.redirect('/tasks');
@@ -481,20 +550,25 @@ const edit = async (req, res) => {
   }
 };
 
-// Completa serviço
-const complete = async (req, res) => {
-  try {
-    await Task.update({ completed: true }, { where: { id: req.params.id, user_id: req.userId } });
-    res.redirect('/tasks');
-  } catch (error) {
-    res.status(500).send({ error: 'Erro ao completar serviço' });
-  }
-};
-
 // Marca serviço como pago
 const markAsPaid = async (req, res) => {
   try {
+    const TaskHistory = require('../models/TaskHistory');
+    
+    // Atualiza na tabela principal
     await Task.update({ paid: true }, { where: { id: req.params.id, user_id: req.userId } });
+    
+    // Atualiza no histórico usando task_id
+    await TaskHistory.update(
+      { paid: true },
+      { 
+        where: { 
+          task_id: req.params.id,
+          user_id: req.userId 
+        } 
+      }
+    );
+    
     res.redirect('/tasks');
   } catch (error) {
     res.status(500).send({ error: 'Erro ao marcar como pago' });
@@ -504,7 +578,22 @@ const markAsPaid = async (req, res) => {
 // Marca serviço como não pago
 const markAsUnpaid = async (req, res) => {
   try {
+    const TaskHistory = require('../models/TaskHistory');
+    
+    // Atualiza na tabela principal
     await Task.update({ paid: false }, { where: { id: req.params.id, user_id: req.userId } });
+    
+    // Atualiza no histórico usando task_id
+    await TaskHistory.update(
+      { paid: false },
+      { 
+        where: { 
+          task_id: req.params.id,
+          user_id: req.userId 
+        } 
+      }
+    );
+    
     res.redirect('/tasks');
   } catch (error) {
     res.status(500).send({ error: 'Erro ao marcar como não pago' });
@@ -529,14 +618,67 @@ const remove = async (req, res) => {
   }
 };
 
+// Renderiza histórico de serviços finalizados
+const renderHistory = async (req, res) => {
+  try {
+    const TaskHistory = require('../models/TaskHistory');
+    const TaskHistoryMachine = require('../models/TaskHistoryMachine');
+    
+    // Busca histórico independente
+    const histories = await TaskHistory.findAll({ 
+      where: { user_id: req.userId },
+      order: [['completedAt', 'DESC']]
+    });
+    
+    // Converte para formato esperado pela view
+    const tasksWithMachines = [];
+    
+    for (const history of histories) {
+      const historyData = history.toJSON();
+      
+      // Cria objeto cliente fake para manter compatibilidade com a view
+      historyData.client = {
+        name: historyData.clientName,
+        email: historyData.clientEmail
+      };
+      
+      // Busca máquinas do histórico
+      const historyMachines = await TaskHistoryMachine.findAll({
+        where: { history_id: history.id }
+      });
+      
+      historyData.machines = historyMachines.map(hm => {
+        return {
+          name: hm.machineName,
+          type: hm.machineType,
+          task_machine: {
+            startTime: hm.startTime,
+            endTime: hm.endTime,
+            hoursWorked: hm.hoursWorked,
+            hourlyRate: hm.hourlyRate,
+            totalAmount: hm.totalAmount
+          }
+        };
+      });
+      
+      tasksWithMachines.push(historyData);
+    }
+    
+    res.render('tasks/historico', { tasks: tasksWithMachines });
+  } catch (error) {
+    console.error('Erro ao buscar histórico:', error);
+    res.status(500).send({ error: 'Erro ao buscar histórico: ' + error.message });
+  }
+};
+
 module.exports = {
   renderList,
   renderNew,
   create,
   renderEdit,
   edit,
-  complete,
   markAsPaid,
   markAsUnpaid,
   remove,
+  renderHistory,
 };

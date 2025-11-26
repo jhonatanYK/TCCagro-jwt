@@ -103,6 +103,24 @@
               </div>
             </div>
           </div>
+
+          <!-- Card Histórico -->
+          <div class="bg-gray-700 rounded-lg p-6 hover:scale-105 transition-transform duration-300 md:col-span-2">
+            <div class="flex flex-col items-center gap-4">
+              <svg class="w-16 h-16 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <h4 class="text-lg font-bold text-white">Histórico</h4>
+              <div class="flex flex-col gap-2 w-full max-w-xs mx-auto">
+                <a
+                  href="/tasks/history"
+                  class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg text-center transition duration-200 border-2 border-purple-400"
+                >
+                  Ver Histórico de Serviços
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -130,12 +148,12 @@
         });
       })();
 
-      // Registra Service Worker para PWA
+      // Service Worker desabilitado temporariamente para evitar cache
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => console.log('PWA: Service Worker registrado'))
-            .catch(err => console.log('PWA: Erro ao registrar Service Worker', err));
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
         });
       }
     </script>

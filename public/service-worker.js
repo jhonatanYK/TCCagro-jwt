@@ -1,10 +1,10 @@
-const CACHE_NAME = 'gestor-agro-v1';
+const CACHE_NAME = 'gestor-agro-v3'; // Versão atualizada - força reload
 const urlsToCache = [
   '/',
-  '/dashboard',
   '/styles.css',
   '/tailwind.css',
   '/trator.png'
+  // Removido '/dashboard' do cache para sempre pegar versão atualizada
 ];
 
 // Instalação do Service Worker
@@ -34,6 +34,11 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   // Não fazer cache de requisições POST
   if (event.request.method === 'POST') {
+    return event.respondWith(fetch(event.request));
+  }
+  
+  // Não fazer cache da dashboard - sempre buscar versão mais recente
+  if (event.request.url.includes('/dashboard')) {
     return event.respondWith(fetch(event.request));
   }
   
