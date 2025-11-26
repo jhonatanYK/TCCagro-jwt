@@ -7,9 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Painel Principal - Gestor de Serviços</title>
-    <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/trator.png">
-    <link rel="apple-touch-icon" href="/trator.png">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   </head>
   <body class="bg-gray-900 text-white">
@@ -125,37 +123,6 @@
       </div>
     </div>
 
-    <script>
-      // Verifica se o usuário ainda está autenticado
-      (function() {
-        // Desabilita o botão voltar após logout - verifica se página veio do cache
-        window.addEventListener('pageshow', function(event) {
-          if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
-            // Página foi restaurada do cache - verifica autenticação
-            fetch('/api/check-auth', {
-              method: 'GET',
-              credentials: 'include'
-            })
-            .then(response => {
-              if (!response.ok) {
-                window.location.replace('/login');
-              }
-            })
-            .catch(() => {
-              window.location.replace('/login');
-            });
-          }
-        });
-      })();
-
-      // Service Worker desabilitado temporariamente para evitar cache
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
-    </script>
+    <%- include('partials/auth-check') %>
   </body>
 </html>

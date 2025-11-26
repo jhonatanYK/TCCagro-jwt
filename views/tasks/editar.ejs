@@ -102,10 +102,13 @@
                           step="0.1" 
                           name="end_times[]" 
                           placeholder="Ex: <%= (parseFloat(tm.startTime) + 10).toFixed(1) %>"
-                          min="0.1"
+                          min="<%= tm.startTime %>"
                           required
+                          data-start-time="<%= tm.startTime %>"
+                          onchange="validateEndTimeEdit(this)"
                           class="end-time-input w-full bg-gray-800 text-white border border-yellow-500 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"
                         />
+                        <p class="text-xs text-gray-400 mt-1">Deve ser maior ou igual a <%= tm.startTime %></p>
                       </div>
                     <% } else { %>
                       <!-- Mostra os resultados finalizados -->
@@ -238,29 +241,10 @@
       </div>
     </div>
 
+    <%- include('../partials/auth-check') %>
+    
     <script>
-      // Verifica se o usuário ainda está autenticado
-      (function() {
-        // Desabilita o botão voltar após logout - verifica se página veio do cache
-        window.addEventListener('pageshow', function(event) {
-          if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
-            // Página foi restaurada do cache - verifica autenticação
-            fetch('/api/check-auth', {
-              method: 'GET',
-              credentials: 'include'
-            })
-            .then(response => {
-              if (!response.ok) {
-                window.location.replace('/login');
-              }
-            })
-            .catch(() => {
-              window.location.replace('/login');
-            });
-          }
-        });
-        
-        // Validação de hora final
+      // Validação de hora final
         const form = document.getElementById('editTaskForm');
         const endTimeInputs = document.querySelectorAll('.end-time-input');
         const errorAlert = document.getElementById('errorAlert');
@@ -275,13 +259,38 @@
           }, 5000);
         }
         
-        // Validação em tempo real
+        // Função de validação para hora final (valida apenas quando terminar de digitar)
+        function validateEndTimeEdit(input) {
+          const startTime = parseFloat(input.getAttribute('data-start-time'));
+          const endTime = parseFloat(input.value);
+          
+          if (input.value && endTime < startTime) {
+            input.value = '';
+            showError(`⚠️ Horímetro final deve ser maior ou igual a ${startTime}!`);
+            return false;
+          }
+          
+          if (endTime === 0 || input.value.trim() === '0') {
+            input.value = '';
+            showError('⚠️ A hora final não pode ser 0!');
+            return false;
+          }
+          
+          return true;
+        }
+        
+        // Validação em tempo real apenas para zero
         endTimeInputs.forEach(input => {
-          input.addEventListener('input', function() {
+          input.addEventListener('change', function() {
             const value = parseFloat(this.value);
+            const startTime = parseFloat(this.getAttribute('data-start-time'));
+            
             if (value === 0 || this.value.trim() === '0') {
               this.value = '';
               showError('⚠️ A hora final não pode ser 0!');
+            } else if (this.value && value < startTime) {
+              this.value = '';
+              showError(`⚠️ Horímetro final deve ser maior ou igual a ${startTime}!`);
             }
           });
         });
@@ -293,9 +302,14 @@
             
             endTimeInputs.forEach(input => {
               const value = parseFloat(input.value);
+              const startTime = parseFloat(input.getAttribute('data-start-time'));
+              
               if (value === 0 || input.value.trim() === '0' || input.value.trim() === '') {
                 hasError = true;
                 showError('⚠️ Todas as horas finais devem ser preenchidas e diferentes de 0!');
+              } else if (value < startTime) {
+                hasError = true;
+                showError(`⚠️ Horímetro final deve ser maior ou igual ao inicial (${startTime})!`);
               }
             });
             

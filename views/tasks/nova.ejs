@@ -277,7 +277,8 @@
                 name="start_times[]" 
                 placeholder="Ex: 1234.5" 
                 required
-                class="w-full bg-gray-700 text-white border border-gray-500 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                class="start-time-input w-full bg-gray-700 text-white border border-gray-500 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                oninput="updateEndTimeMin(this)"
               />
               <p class="text-xs text-gray-400 mt-1">Horímetro no início do serviço</p>
             </div>
@@ -297,6 +298,34 @@
             hourlyRateInput.value = rate || 0;
             validateDuplicateMachines.call(this);
           });
+        }
+
+        // Função para atualizar valor mínimo da hora final baseado na hora inicial
+        function updateEndTimeMin(startInput) {
+          const machineDiv = startInput.closest('.bg-gray-600');
+          const endInput = machineDiv.querySelector('.end-time-input');
+          
+          if (startInput.value && endInput) {
+            endInput.min = startInput.value;
+          }
+        }
+
+        // Validação adicional no campo final (apenas quando terminar de digitar)
+        function validateEndTime(endInput) {
+          const machineDiv = endInput.closest('.bg-gray-600');
+          const startInput = machineDiv.querySelector('.start-time-input');
+          
+          if (startInput.value && endInput.value) {
+            const startValue = parseFloat(startInput.value);
+            const endValue = parseFloat(endInput.value);
+            
+            if (endValue < startValue) {
+              endInput.value = '';
+              showNotification('Horímetro final deve ser maior ou igual ao inicial!', 'error');
+              return false;
+            }
+          }
+          return true;
         }
 
         // Função para remover uma máquina
@@ -337,29 +366,9 @@
         addMachineField();
       
       } // Fecha o bloco if (hasData)
-
-      // Verifica se o usuário ainda está autenticado
-      (function() {
-        // Desabilita o botão voltar após logout - verifica se página veio do cache
-        window.addEventListener('pageshow', function(event) {
-          if (event.persisted || (window.performance && window.performance.navigation.type == 2)) {
-            // Página foi restaurada do cache - verifica autenticação
-            fetch('/api/check-auth', {
-              method: 'GET',
-              credentials: 'include'
-            })
-            .then(response => {
-              if (!response.ok) {
-                window.location.replace('/login');
-              }
-            })
-            .catch(() => {
-              window.location.replace('/login');
-            });
-          }
-        });
-      })();
     </script>
+
+    <%- include('../partials/auth-check') %>
   </body>
 </html>
         

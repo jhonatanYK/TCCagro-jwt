@@ -17,41 +17,57 @@ const renderList = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
     
-    // Converte para array de objetos plain
-    const tasksWithMachines = [];
+    // IDs das tasks para buscar machines de uma vez
+    const taskIds = tasks.map(t => t.id);
     
-    for (const task of tasks) {
+    // Busca todas as relações TaskMachine de uma vez
+    const allTaskMachines = await TaskMachine.findAll({
+      where: { task_id: taskIds }
+    });
+    
+    // Busca IDs únicos de máquinas
+    const machineIds = [...new Set(allTaskMachines.map(tm => tm.machine_id))];
+    
+    // Busca todas as máquinas de uma vez
+    const allMachines = await Machine.findAll({
+      where: {
+        id: machineIds,
+        user_id: req.userId
+      }
+    });
+    
+    // Cria mapa para acesso rápido
+    const machinesMap = {};
+    allMachines.forEach(m => {
+      machinesMap[m.id] = m.toJSON();
+    });
+    
+    // Monta estrutura final
+    const tasksWithMachines = tasks.map(task => {
       const taskData = task.toJSON();
       
-      // Busca as máquinas associadas via TaskMachine
-      const taskMachines = await TaskMachine.findAll({
-        where: { task_id: task.id }
-      });
+      // Filtra TaskMachines desta task
+      const taskMachines = allTaskMachines.filter(tm => tm.task_id === task.id);
       
-      taskData.machines = [];
-      for (const tm of taskMachines) {
-        const machine = await Machine.findOne({
-          where: {
-            id: tm.machine_id,
-            user_id: req.userId
-          }
-        });
+      taskData.machines = taskMachines.map(tm => {
+        const machine = machinesMap[tm.machine_id];
         if (machine) {
-          const machineData = machine.toJSON();
-          machineData.task_machine = {
-            id: tm.id,
-            startTime: tm.startTime,
-            endTime: tm.endTime,
-            hoursWorked: tm.hoursWorked,
-            totalAmount: tm.totalAmount,
-            hourlyRate: tm.hourlyRate
+          return {
+            ...machine,
+            task_machine: {
+              id: tm.id,
+              startTime: tm.startTime,
+              endTime: tm.endTime,
+              hoursWorked: tm.hoursWorked,
+              totalAmount: tm.totalAmount,
+              hourlyRate: tm.hourlyRate
+            }
           };
-          taskData.machines.push(machineData);
         }
-      }
+      }).filter(Boolean);
       
-      tasksWithMachines.push(taskData);
-    }
+      return taskData;
+    });
     
     res.render('tasks/listar', { tasks: tasksWithMachines });
   } catch (error) {
@@ -664,10 +680,23 @@ const renderHistory = async (req, res) => {
       offset: offset
     });
     
-    // Converte para formato esperado pela view
-    const tasksWithMachines = [];
+    // Busca todas as máquinas dos históricos de uma vez
+    const historyIds = histories.map(h => h.id);
+    const allHistoryMachines = await TaskHistoryMachine.findAll({
+      where: { history_id: historyIds }
+    });
     
-    for (const history of histories) {
+    // Agrupa máquinas por history_id
+    const machinesByHistory = {};
+    allHistoryMachines.forEach(hm => {
+      if (!machinesByHistory[hm.history_id]) {
+        machinesByHistory[hm.history_id] = [];
+      }
+      machinesByHistory[hm.history_id].push(hm);
+    });
+    
+    // Converte para formato esperado pela view
+    const tasksWithMachines = histories.map(history => {
       const historyData = history.toJSON();
       
       // Cria objeto cliente fake para manter compatibilidade com a view
@@ -676,10 +705,8 @@ const renderHistory = async (req, res) => {
         email: historyData.clientEmail
       };
       
-      // Busca máquinas do histórico
-      const historyMachines = await TaskHistoryMachine.findAll({
-        where: { history_id: history.id }
-      });
+      // Busca máquinas do histórico do mapa
+      const historyMachines = machinesByHistory[history.id] || [];
       
       historyData.machines = historyMachines.map(hm => {
         return {
@@ -695,8 +722,8 @@ const renderHistory = async (req, res) => {
         };
       });
       
-      tasksWithMachines.push(historyData);
-    }
+      return historyData;
+    });
     
     res.render('tasks/historico', { 
       tasks: tasksWithMachines,
