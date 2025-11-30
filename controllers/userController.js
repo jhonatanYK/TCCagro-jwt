@@ -183,7 +183,12 @@ const login = async (req, res) => {
       return res.render('users/login', { error: 'Email ou senha incorretos!' });
     }
     const token = generateToken(user);
-    res.cookie('token', token, { httpOnly: true });
+    res.cookie('token', token, { 
+      httpOnly: true,
+      secure: true,        // Força HTTPS (Render usa HTTPS)
+      sameSite: 'lax',     // Permite navegação normal
+      maxAge: 3600000      // 1 hora (mesmo tempo do JWT)
+    });
     res.redirect('/dashboard');
   } catch (error) {
     res.render('users/login', { error: 'Erro ao fazer login!' });
