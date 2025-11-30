@@ -1,7 +1,7 @@
 <!-- Sistema de Notificações Customizado -->
 <div id="notification-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
-<!-- Modal oculto por padrão (hidden), flex é necessário para quando visível -->
-<div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+<!-- Modal oculto por padrão -->
+<div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 items-center justify-center">
   <div class="bg-gray-800 rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 border-2 border-yellow-500">
     <div class="flex items-start mb-4">
       <svg class="w-8 h-8 text-yellow-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,9 +64,15 @@
     
     // Auto remove após 5 segundos
     setTimeout(() => {
-      notification.style.opacity = '0';
-      notification.style.transform = 'translateX(400px)';
-      setTimeout(() => notification.remove(), 300);
+      if (notification.parentElement) { // Verifica se ainda está no DOM
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(400px)';
+        setTimeout(() => {
+          if (notification.parentElement) { // Verifica novamente antes de remover
+            notification.remove();
+          }
+        }, 300);
+      }
     }, 5000);
   }
 
@@ -80,9 +86,11 @@
       
       messageEl.textContent = message;
       modal.classList.remove('hidden');
+      modal.classList.add('flex'); // Adiciona flex quando visível
       
       function cleanup() {
         modal.classList.add('hidden');
+        modal.classList.remove('flex'); // Remove flex ao esconder
         okBtn.onclick = null;
         cancelBtn.onclick = null;
       }
