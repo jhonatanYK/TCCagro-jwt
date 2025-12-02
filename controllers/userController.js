@@ -185,7 +185,7 @@ const login = async (req, res) => {
     const token = generateToken(user);
     res.cookie('token', token, { 
       httpOnly: true,
-      secure: true,        // Força HTTPS (Render usa HTTPS)
+      secure: process.env.NODE_ENV === 'production',  // HTTPS apenas em produção
       sameSite: 'lax',     // Permite navegação normal
       maxAge: 3600000      // 1 hora (mesmo tempo do JWT)
     });
