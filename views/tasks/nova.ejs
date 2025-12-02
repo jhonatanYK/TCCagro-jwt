@@ -224,7 +224,7 @@
         // Dados das máquinas disponíveis
         const availableMachines = <%-
           JSON.stringify(machines.map(m => ({ 
-            id: m.id, 
+            id: m.id,   
             name: m.name, 
             type: m.type, 
             hourlyRate: m.hourlyRate 
@@ -303,7 +303,7 @@
         // Função para atualizar valor mínimo da hora final baseado na hora inicial
         function updateEndTimeMin(startInput) {
           const machineDiv = startInput.closest('.bg-gray-600');
-          const endInput = machineDiv.querySelector('.end-time-input');
+          const endInput = machineDiv.querySelector('.end-time-input');               
           
           if (startInput.value && endInput) {
             endInput.min = startInput.value;
