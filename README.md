@@ -21,6 +21,7 @@ Sistema completo para gerenciamento de serviços agrícolas com controle de máq
 - **JWT (jsonwebtoken 9.0.2)** - Autenticação
 - **Bcrypt 6.0.0** - Hash de senhas
 - **Cookie-Parser** - Gerenciamento de sessões
+- **PDFKit 0.15.0** - Geração de PDFs
 
 ### Frontend
 - **EJS 3.1.10** - Template engine (Server-Side Rendering)
@@ -56,6 +57,7 @@ Sistema completo para gerenciamento de serviços agrícolas com controle de máq
 ### 📝 Gestão de Serviços
 - ✅ Criar serviço com múltiplas máquinas
 - ✅ Tipos: Terraplanagem, Gradear, Plantar, Colheita, etc.
+- ✅ **Data do serviço** (campo obrigatório)
 - ✅ Horímetro inicial por máquina
 - ✅ Validações:
   - Endereço e número obrigatórios
@@ -66,13 +68,31 @@ Sistema completo para gerenciamento de serviços agrícolas com controle de máq
   - Horas trabalhadas = horímetro final - inicial
   - Valor total = horas × valor/hora
 - ✅ Status de pagamento (pago/não pago)
+- ✅ **Geração de PDF** da ordem de serviço
 
 ### 📊 Histórico e Relatórios
 - ✅ Histórico de serviços finalizados
 - ✅ Paginação (10 serviços por página)
-- ✅ Filtro por cliente
+- ✅ **Filtros avançados:**
+  - Por cliente
+  - Por data inicial
+  - Por data final
+- ✅ **Exportação em PDF** (design profissional)
 - ✅ Dados desnormalizados (mantém histórico mesmo se cliente/máquina forem deletados)
 - ✅ Controle de pagamentos
+
+### 📄 Geração de PDF
+- ✅ Ordem de serviço profissional
+- ✅ **Layout responsivo** (ajusta altura conforme conteúdo)
+- ✅ Informações incluídas:
+  - Cabeçalho com número e data de emissão
+  - Dados do cliente (nome, email)
+  - Detalhes do serviço (data, tipo, local, descrição)
+  - Lista de máquinas com valores
+  - Cálculos automáticos (subtotal por máquina, total geral)
+  - Status de pagamento (PAGO/PENDENTE)
+- ✅ Design moderno com cores e bordas arredondadas
+- ✅ Geração otimizada (1 página única)
 
 ### 🔒 Segurança
 - ✅ Autenticação JWT
@@ -150,9 +170,9 @@ O projeto usa **SQLite** com arquivo `database.sqlite` na raiz.
 - `users` - Usuários do sistema
 - `clients` - Clientes/proprietários
 - `machines` - Máquinas/equipamentos
-- `tasks` - Serviços ativos
+- `tasks` - Serviços ativos (inclui campo `service_date`)
 - `task_machines` - Relacionamento N:N (task ↔ machine)
-- `task_histories` - Histórico de serviços finalizados
+- `task_histories` - Histórico de serviços finalizados (inclui campo `service_date`)
 - `task_history_machines` - Histórico de máquinas usadas
 
 ## 🎯 Uso
@@ -177,9 +197,12 @@ http://localhost:3000
    - Informe o horímetro final de cada máquina
    - O sistema calcula automaticamente horas e valores
    - Quando todas as máquinas forem finalizadas, o serviço vai para o histórico
-6. **Gerencie Pagamentos:**
+6. **Gere o PDF:**
+   - Clique no botão "PDF" ao lado do serviço
+   - Baixe a ordem de serviço em formato profissional
+7. **Gerencie Pagamentos:**
    - Marque serviços como "Pago" ou "Não Pago"
-   - Filtre por cliente no histórico
+   - Filtre por cliente e/ou data no histórico
 
 ## 🗂️ Estrutura do Projeto
 
@@ -269,9 +292,16 @@ TCCagro-jwt/
 
 ### Problema: Erro ao criar serviço
 **Solução:** Certifique-se que:
+- Data do serviço está preenchida
 - Endereço e número estão preenchidos
 - Não há máquinas duplicadas
 - Máquinas selecionadas não estão em uso
+
+### Problema: Data do serviço aparece um dia anterior
+**Solução:** Sistema já corrigido! Usa formatação de string para evitar problemas de timezone
+
+### Problema: PDF gera 2 páginas
+**Solução:** Sistema já otimizado! PDF gera em página única com altura dinâmica baseada no conteúdo
 
 ## 📝 Licença
 

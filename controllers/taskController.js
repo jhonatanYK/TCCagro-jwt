@@ -778,32 +778,93 @@ const generatePDF = async (req, res) => {
   try {
     const PDFDocument = require('pdfkit');
     const TaskMachine = require('../models/TaskMachine');
+    const TaskHistory = require('../models/TaskHistory');
+    const TaskHistoryMachine = require('../models/TaskHistoryMachine');
     const Machine = require('../models/Machine');
     
-    // Busca o serviço
-    const task = await Task.findOne({
+    // Tenta buscar o serviço ativo primeiro
+    let task = await Task.findOne({
       where: { id: req.params.id, user_id: req.userId },
       include: [{ model: Client, as: 'client' }]
     });
 
-    if (!task) {
-      return res.status(404).send('Serviço não encontrado');
-    }
+    let machines = [];
+    let allFinished = true;
+    let isFromHistory = false;
 
-    // Busca as máquinas do serviço
-    const taskMachines = await TaskMachine.findAll({
-      where: { task_id: task.id }
-    });
+    if (task) {
+      // Serviço ativo - busca as máquinas normalmente
+      const taskMachines = await TaskMachine.findAll({
+        where: { task_id: task.id }
+      });
+      
+      for (const tm of taskMachines) {
+        const machine = await Machine.findByPk(tm.machine_id);
+        if (machine) {
+          machines.push({
+            machine: machine,
+            taskMachine: tm
+          });
+          if (!tm.endTime) {
+            allFinished = false;
+          }
+        }
+      }
+    } else {
+      // Não encontrou em Task, busca no histórico
+      const taskHistory = await TaskHistory.findOne({
+        where: { task_id: req.params.id, user_id: req.userId }
+      });
 
-    const machines = [];
-    for (const tm of taskMachines) {
-      const machine = await Machine.findByPk(tm.machine_id);
-      if (machine) {
+      if (!taskHistory) {
+        return res.status(404).send('Serviço não encontrado');
+      }
+
+      isFromHistory = true;
+      
+      // Monta objeto task a partir do histórico
+      task = {
+        id: taskHistory.task_id,
+        service_date: taskHistory.service_date,
+        serviceName: taskHistory.serviceName,
+        location: taskHistory.location,
+        locationNumber: taskHistory.locationNumber,
+        description: taskHistory.description,
+        paid: taskHistory.paid,
+        client: {
+          name: taskHistory.clientName,
+          email: taskHistory.clientEmail
+        }
+      };
+
+      // Busca as máquinas do histórico
+      const historyMachines = await TaskHistoryMachine.findAll({
+        where: { history_id: taskHistory.id }
+      });
+
+      for (const hm of historyMachines) {
         machines.push({
-          machine: machine,
-          taskMachine: tm
+          machine: {
+            name: hm.machineName,
+            type: hm.machineType
+          },
+          taskMachine: {
+            startTime: hm.startTime,
+            endTime: hm.endTime,
+            hoursWorked: hm.hoursWorked,
+            hourlyRate: hm.hourlyRate,
+            totalAmount: hm.totalAmount
+          }
         });
       }
+      
+      // Histórico sempre tem tudo finalizado
+      allFinished = true;
+    }
+
+    // Impede geração de PDF se o serviço ainda não foi finalizado
+    if (!allFinished || machines.length === 0) {
+      return res.status(400).send('Não é possível gerar PDF de um serviço em andamento. Finalize todas as máquinas primeiro.');
     }
 
     // Cria o documento PDF
@@ -947,6 +1008,19 @@ const generatePDF = async (req, res) => {
       // Box para cada máquina com altura adequada
       const alturaBox = tm.endTime ? 145 : 95;
       
+      // Verifica se precisa de nova página (margem de 100px do fim)
+      if (yTabela + alturaBox > doc.page.height - 100) {
+        doc.addPage();
+        yTabela = 50; // Reset para o topo da nova página
+        
+        // Repete o título na nova página
+        doc.fillColor(corPrimaria)
+           .fontSize(13)
+           .font('Helvetica-Bold')
+           .text('MÁQUINAS E VALORES (continuação)', 50, yTabela);
+        yTabela += 25;
+      }
+      
       // Desenha o fundo branco primeiro
       doc.roundedRect(50, yTabela, 495, alturaBox, 5)
          .fill('#ffffff');
@@ -1036,12 +1110,12 @@ const generatePDF = async (req, res) => {
            .text(`R$ ${valor.toFixed(2).replace('.', ',')}`, 65, yInfo + 13);
         
       } else {
-        yInfo += 20;
-        // Status em andamento
-        doc.fillColor('#dc2626')
-           .fontSize(10)
+        yInfo += 25;
+        // Status em andamento - centralizado no espaço disponível
+        doc.fillColor('#f59e0b')
+           .fontSize(11)
            .font('Helvetica-Bold')
-           .text('⏳ Em andamento', 65, yInfo);
+           .text('⏳ Serviço em andamento', 65, yInfo);
       }
       
       yTabela += alturaBox + 15;
@@ -1049,6 +1123,13 @@ const generatePDF = async (req, res) => {
 
     // Box do total
     yTabela += 10;
+    
+    // Verifica se o box de total cabe na página atual
+    if (yTabela + 80 > doc.page.height - 80) {
+      doc.addPage();
+      yTabela = 50;
+    }
+    
     doc.roundedRect(50, yTabela, 495, 60, 5)
        .lineWidth(2)
        .fillAndStroke('#f0fdfa', corPrimaria);
