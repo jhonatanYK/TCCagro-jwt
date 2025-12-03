@@ -2,12 +2,31 @@ const Task = require('../models/Task');
 const User = require('../models/User');
 const Client = require('../models/Client');
 const Machine = require('../models/Machine');
+const TaskMachine = require('../models/TaskMachine');
+const TaskHistory = require('../models/TaskHistory');
+const TaskHistoryMachine = require('../models/TaskHistoryMachine');
+const db = require('../db');
+const { Op } = require('sequelize');
+
+// Função auxiliar para buscar clients e machines do usuário
+async function getUserClientsAndMachines(userId) {
+  const [clients, machines] = await Promise.all([
+    Client.findAll({ 
+      where: { user_id: userId },
+      order: [['name', 'ASC']]
+    }),
+    Machine.findAll({ 
+      where: { user_id: userId },
+      order: [['name', 'ASC']]
+    })
+  ]);
+  return { clients, machines };
+}
 
 
 // Renderiza lista de serviços
 const renderList = async (req, res) => {
   try {
-    const TaskMachine = require('../models/TaskMachine');
     
     const tasks = await Task.findAll({ 
       where: { user_id: req.userId },
@@ -79,14 +98,7 @@ const renderList = async (req, res) => {
 // Renderiza formulário de novo serviço
 const renderNew = async (req, res) => {
   try {
-    const clients = await Client.findAll({ 
-      where: { user_id: req.userId },
-      order: [['name', 'ASC']] 
-    });
-    const machines = await Machine.findAll({ 
-      where: { user_id: req.userId },
-      order: [['name', 'ASC']] 
-    });
+    const { clients, machines } = await getUserClientsAndMachines(req.userId);
     
     // Verifica se há clientes e máquinas cadastrados
     if (clients.length === 0 || machines.length === 0) {
@@ -119,16 +131,7 @@ const create = async (req, res) => {
     
     // Validação de endereço/localidade
     if (!location || location.trim() === '') {
-      const Client = require('../models/Client');
-      const Machine = require('../models/Machine');
-      const clients = await Client.findAll({ 
-        where: { user_id: req.userId },
-        order: [['name', 'ASC']]
-      });
-      const machines = await Machine.findAll({ 
-        where: { user_id: req.userId },
-        order: [['name', 'ASC']]
-      });
+      const { clients, machines } = await getUserClientsAndMachines(req.userId);
       
       return res.render('tasks/nova', { 
         clients, 
@@ -183,17 +186,7 @@ const create = async (req, res) => {
     const hasDuplicates = uniqueMachineIds.length !== new Set(uniqueMachineIds).size;
     
     if (hasDuplicates) {
-      const Client = require('../models/Client');
-      const Machine = require('../models/Machine');
-      const clients = await Client.findAll({ 
-        where: { user_id: req.userId },
-        order: [['name', 'ASC']]
-      });
-      const machines = await Machine.findAll({ 
-        where: { user_id: req.userId },
-        order: [['name', 'ASC']]
-      });
-      
+      const { clients, machines } = await getUserClientsAndMachines(req.userId);
       return res.render('tasks/nova', { 
         clients, 
         machines,
@@ -202,9 +195,6 @@ const create = async (req, res) => {
     }
     
     // Validação 2: Verifica se alguma máquina já está em uso em serviço não finalizado
-    const TaskMachine = require('../models/TaskMachine');
-    const Machine = require('../models/Machine');
-    const db = require('../db');
     
     for (let i = 0; i < machine_ids.length; i++) {
       if (machine_ids[i]) {
@@ -232,15 +222,7 @@ const create = async (req, res) => {
           const serviceName = machinesInUse[0].serviceName;
           
           // Renderiza novamente o formulário com mensagem de erro
-          const Client = require('../models/Client');
-          const clients = await Client.findAll({ 
-            where: { user_id: req.userId },
-            order: [['name', 'ASC']]
-          });
-          const machines = await Machine.findAll({ 
-            where: { user_id: req.userId },
-            order: [['name', 'ASC']]
-          });
+          const { clients, machines } = await getUserClientsAndMachines(req.userId);
           
           return res.render('tasks/nova', { 
             clients, 
@@ -296,9 +278,6 @@ const create = async (req, res) => {
 // Renderiza formulário de edição
 const renderEdit = async (req, res) => {
   try {
-    const Machine = require('../models/Machine');
-    const TaskMachine = require('../models/TaskMachine');
-    
     // Busca o serviço
     const task = await Task.findOne({ 
       where: { id: req.params.id, user_id: req.userId },
@@ -340,14 +319,7 @@ const renderEdit = async (req, res) => {
       }
     }
     
-    const clients = await Client.findAll({ 
-      where: { user_id: req.userId },
-      order: [['name', 'ASC']] 
-    });
-    const machines = await Machine.findAll({ 
-      where: { user_id: req.userId },
-      order: [['name', 'ASC']] 
-    });
+    const { clients, machines } = await getUserClientsAndMachines(req.userId);
     
     res.render('tasks/editar', { task: taskData, clients, machines });
   } catch (error) {
@@ -360,7 +332,6 @@ const renderEdit = async (req, res) => {
 const edit = async (req, res) => {
   try {
     const { client_id, serviceName, service_date, location, locationNumber, description, machine_ids, end_times, task_machine_ids } = req.body;
-    const TaskMachine = require('../models/TaskMachine');
     
     // Validação de endereço/localidade (quando editando informações básicas)
     if (location !== undefined && (!location || location.trim() === '')) {
@@ -636,9 +607,7 @@ const markAsUnpaid = async (req, res) => {
 // Exclui serviço
 const remove = async (req, res) => {
   try {
-    const TaskMachine = require('../models/TaskMachine');
-    
-    // Primeiro deleta as máquinas associadas
+    // Primeiro deleta as máquinas associadas (cascade já configurado no model)
     await TaskMachine.destroy({ where: { task_id: req.params.id } });
     
     // Depois deleta o serviço
@@ -654,10 +623,6 @@ const remove = async (req, res) => {
 // Renderiza histórico de serviços finalizados
 const renderHistory = async (req, res) => {
   try {
-    const TaskHistory = require('../models/TaskHistory');
-    const TaskHistoryMachine = require('../models/TaskHistoryMachine');
-    const { Op } = require('sequelize');
-    
     // Pega os filtros da query string
     const clientFilter = req.query.client || '';
     const startDate = req.query.startDate || '';
@@ -777,10 +742,6 @@ const renderHistory = async (req, res) => {
 const generatePDF = async (req, res) => {
   try {
     const PDFDocument = require('pdfkit');
-    const TaskMachine = require('../models/TaskMachine');
-    const TaskHistory = require('../models/TaskHistory');
-    const TaskHistoryMachine = require('../models/TaskHistoryMachine');
-    const Machine = require('../models/Machine');
     
     // Tenta buscar o serviço ativo primeiro
     let task = await Task.findOne({
