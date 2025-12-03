@@ -19,6 +19,10 @@ const Task = db.define('task', {
     type: db.Sequelize.TEXT,
     allowNull: true,
   },
+  service_date: {
+    type: db.Sequelize.DATEONLY,
+    allowNull: false,
+  },
   completed: {
     type: db.Sequelize.BOOLEAN,
     defaultValue: false,

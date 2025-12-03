@@ -115,7 +115,7 @@ const renderNew = async (req, res) => {
 // Cria novo serviço
 const create = async (req, res) => {
   try {
-    let { client_id, serviceName, location, locationNumber, description, machine_ids, start_times, hourly_rates } = req.body;
+    let { client_id, serviceName, service_date, location, locationNumber, description, machine_ids, start_times, hourly_rates } = req.body;
     
     // Validação de endereço/localidade
     if (!location || location.trim() === '') {
@@ -252,9 +252,17 @@ const create = async (req, res) => {
     }
     
     // Cria o serviço principal
+    // Formata a data para evitar problemas de timezone
+    let formattedDate = service_date;
+    if (service_date) {
+      // Se a data vier no formato YYYY-MM-DD, usa diretamente
+      formattedDate = service_date.split('T')[0]; // Remove parte de hora se existir
+    }
+    
     const task = await Task.create({ 
       client_id: client_id || null,
       serviceName: serviceName || '',
+      service_date: formattedDate,
       location: location || '',
       locationNumber: locationNumber || '',
       description: description || '',
@@ -351,7 +359,7 @@ const renderEdit = async (req, res) => {
 // Edita serviço
 const edit = async (req, res) => {
   try {
-    const { client_id, serviceName, location, locationNumber, description, machine_ids, end_times, task_machine_ids } = req.body;
+    const { client_id, serviceName, service_date, location, locationNumber, description, machine_ids, end_times, task_machine_ids } = req.body;
     const TaskMachine = require('../models/TaskMachine');
     
     // Validação de endereço/localidade (quando editando informações básicas)
@@ -455,8 +463,14 @@ const edit = async (req, res) => {
     }
     
     // Atualiza o serviço principal
+    // Formata a data para evitar problemas de timezone
+    let formattedDate = service_date;
+    if (service_date) {
+      formattedDate = service_date.split('T')[0]; // Remove parte de hora se existir
+    }
+    
     await Task.update(
-      { client_id, serviceName, location, locationNumber, description }, 
+      { client_id, serviceName, service_date: formattedDate, location, locationNumber, description }, 
       { where: { id: req.params.id, user_id: req.userId } }
     );
 
@@ -531,6 +545,7 @@ const edit = async (req, res) => {
         const history = await TaskHistory.create({
           task_id: task.id,
           serviceName: task.serviceName,
+          service_date: task.service_date,
           location: task.location,
           locationNumber: task.locationNumber,
           description: task.description,
@@ -641,9 +656,12 @@ const renderHistory = async (req, res) => {
   try {
     const TaskHistory = require('../models/TaskHistory');
     const TaskHistoryMachine = require('../models/TaskHistoryMachine');
+    const { Op } = require('sequelize');
     
-    // Pega o filtro de cliente da query string
+    // Pega os filtros da query string
     const clientFilter = req.query.client || '';
+    const startDate = req.query.startDate || '';
+    const endDate = req.query.endDate || '';
     
     // Paginação
     const page = parseInt(req.query.page) || 1;
@@ -662,10 +680,24 @@ const renderHistory = async (req, res) => {
       ? allHistories.map(h => ({ clientName: h.clientName }))
       : [];
     
-    // Monta a query com filtro opcional
+    // Monta a query com filtros opcionais
     const whereClause = { user_id: req.userId };
+    
     if (clientFilter) {
       whereClause.clientName = clientFilter;
+    }
+    
+    // Filtro de data
+    if (startDate || endDate) {
+      whereClause.service_date = {};
+      
+      if (startDate) {
+        whereClause.service_date[Op.gte] = startDate;
+      }
+      
+      if (endDate) {
+        whereClause.service_date[Op.lte] = endDate;
+      }
     }
     
     // Conta total de registros para paginação
@@ -729,6 +761,8 @@ const renderHistory = async (req, res) => {
       tasks: tasksWithMachines,
       clients: clients,
       selectedClient: clientFilter,
+      startDate: startDate,
+      endDate: endDate,
       currentPage: page,
       totalPages: totalPages,
       totalCount: totalCount
@@ -736,6 +770,244 @@ const renderHistory = async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar histórico:', error);
     res.status(500).send({ error: 'Erro ao buscar histórico: ' + error.message });
+  }
+};
+
+// Gera PDF da ordem de serviço
+const generatePDF = async (req, res) => {
+  try {
+    const PDFDocument = require('pdfkit');
+    const TaskMachine = require('../models/TaskMachine');
+    const Machine = require('../models/Machine');
+    
+    // Busca o serviço
+    const task = await Task.findOne({
+      where: { id: req.params.id, user_id: req.userId },
+      include: [{ model: Client, as: 'client' }]
+    });
+
+    if (!task) {
+      return res.status(404).send('Serviço não encontrado');
+    }
+
+    // Busca as máquinas do serviço
+    const taskMachines = await TaskMachine.findAll({
+      where: { task_id: task.id }
+    });
+
+    const machines = [];
+    for (const tm of taskMachines) {
+      const machine = await Machine.findByPk(tm.machine_id);
+      if (machine) {
+        machines.push({
+          machine: machine,
+          taskMachine: tm
+        });
+      }
+    }
+
+    // Cria o documento PDF
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+
+    // Define headers para download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=ordem-servico-${task.id}.pdf`);
+
+    // Pipe o PDF para a resposta
+    doc.pipe(res);
+
+    // Cores
+    const corPrimaria = '#0f766e'; // Teal 700
+    const corSecundaria = '#134e4a'; // Teal 900
+    const corTexto = '#1f2937'; // Gray 800
+
+    // Cabeçalho com fundo colorido
+    doc.rect(0, 0, 595.28, 120).fill(corPrimaria);
+    
+    // Título
+    doc.fillColor('white')
+       .fontSize(28)
+       .font('Helvetica-Bold')
+       .text('ORDEM DE SERVIÇO', 50, 40, { align: 'center' });
+    
+    doc.fontSize(12)
+       .font('Helvetica')
+       .text(`Nº ${task.id.toString().padStart(6, '0')}`, { align: 'center' });
+    
+    // Data de emissão
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    doc.fontSize(10)
+       .text(`Emitido em: ${hoje}`, { align: 'center' });
+    
+    doc.fillColor(corTexto);
+    doc.moveDown(3);
+
+    // Box de informações do cliente
+    const yCliente = 140;
+    doc.roundedRect(50, yCliente, 495, 80, 5)
+       .lineWidth(2)
+       .strokeColor(corPrimaria)
+       .stroke();
+    
+    doc.fillColor(corPrimaria)
+       .fontSize(13)
+       .font('Helvetica-Bold')
+       .text('CLIENTE', 65, yCliente + 15);
+    
+    doc.fillColor(corTexto)
+       .fontSize(11)
+       .font('Helvetica')
+       .text(`Nome: ${task.client ? task.client.name : '-'}`, 65, yCliente + 38);
+    
+    if (task.client && task.client.email) {
+      doc.text(`E-mail: ${task.client.email}`, 65, yCliente + 55);
+    }
+
+    // Box de informações do serviço
+    const yServico = 240;
+    doc.roundedRect(50, yServico, 495, 110, 5)
+       .lineWidth(2)
+       .strokeColor(corPrimaria)
+       .stroke();
+    
+    doc.fillColor(corPrimaria)
+       .fontSize(13)
+       .font('Helvetica-Bold')
+       .text('DETALHES DO SERVIÇO', 65, yServico + 15);
+    
+    doc.fillColor(corTexto)
+       .fontSize(11)
+       .font('Helvetica');
+    
+    let yTexto = yServico + 38;
+    
+    if (task.service_date) {
+      const dateStr = task.service_date.split('T')[0].split('-').reverse().join('/');
+      doc.text(`Data do Serviço: ${dateStr}`, 65, yTexto);
+      yTexto += 17;
+    }
+    
+    doc.text(`Tipo de Serviço: ${task.serviceName}`, 65, yTexto);
+    yTexto += 17;
+    
+    if (task.location) {
+      doc.text(`Local: ${task.location}${task.locationNumber ? ', Nº ' + task.locationNumber : ''}`, 65, yTexto);
+      yTexto += 17;
+    }
+    
+    if (task.description) {
+      doc.text(`Descrição: ${task.description}`, 65, yTexto, { width: 465 });
+    }
+
+    // Tabela de máquinas
+    let yTabela = 370;
+    doc.fillColor(corPrimaria)
+       .fontSize(13)
+       .font('Helvetica-Bold')
+       .text('MÁQUINAS E VALORES', 50, yTabela);
+    
+    yTabela += 25;
+
+    let totalGeral = 0;
+
+    machines.forEach((item, index) => {
+      const machine = item.machine;
+      const tm = item.taskMachine;
+      
+      // Box para cada máquina
+      const alturaBox = tm.endTime ? 100 : 80;
+      
+      doc.roundedRect(50, yTabela, 495, alturaBox, 3)
+         .lineWidth(1)
+         .strokeColor('#cbd5e1')
+         .stroke();
+      
+      // Fundo do header da máquina
+      doc.rect(50, yTabela, 495, 25).fill('#f1f5f9');
+      
+      doc.fillColor(corSecundaria)
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text(`${index + 1}. ${machine.name}`, 60, yTabela + 7);
+      
+      doc.fillColor('#64748b')
+         .fontSize(10)
+         .font('Helvetica')
+         .text(`(${machine.type})`, 60, yTabela + 7, { align: 'right', width: 475 });
+      
+      // Detalhes da máquina
+      doc.fillColor(corTexto)
+         .fontSize(10)
+         .font('Helvetica');
+      
+      let yDetalhe = yTabela + 35;
+      
+      doc.text(`Valor/Hora: R$ ${parseFloat(tm.hourlyRate || 0).toFixed(2).replace('.', ',')}`, 60, yDetalhe);
+      doc.text(`Horímetro Inicial: ${tm.startTime || '-'}`, 300, yDetalhe);
+      
+      yDetalhe += 17;
+      
+      if (tm.endTime) {
+        doc.text(`Horímetro Final: ${tm.endTime}`, 60, yDetalhe);
+        doc.text(`Horas: ${parseFloat(tm.hoursWorked || 0).toFixed(1).replace('.', ',')}h`, 300, yDetalhe);
+        
+        yDetalhe += 17;
+        
+        const valor = parseFloat(tm.totalAmount || 0);
+        totalGeral += valor;
+        
+        doc.font('Helvetica-Bold')
+           .fillColor(corPrimaria)
+           .text(`Subtotal: R$ ${valor.toFixed(2).replace('.', ',')}`, 60, yDetalhe);
+      } else {
+        doc.fillColor('#dc2626')
+           .font('Helvetica-Oblique')
+           .text('⏳ Em andamento', 60, yDetalhe);
+      }
+      
+      yTabela += alturaBox + 10;
+    });
+
+    // Box do total
+    yTabela += 10;
+    doc.roundedRect(50, yTabela, 495, 60, 5)
+       .lineWidth(2)
+       .fillAndStroke('#f0fdfa', corPrimaria);
+    
+    doc.fillColor(corTexto)
+       .fontSize(12)
+       .font('Helvetica-Bold')
+       .text('VALOR TOTAL DO SERVIÇO', 65, yTabela + 15);
+    
+    doc.fontSize(20)
+       .fillColor(corPrimaria)
+       .text(`R$ ${totalGeral.toFixed(2).replace('.', ',')}`, 65, yTabela + 32);
+    
+    // Status de pagamento
+    const statusPagamento = task.paid ? 'PAGO ✓' : 'PENDENTE';
+    const corStatus = task.paid ? '#16a34a' : '#dc2626';
+    const bgStatus = task.paid ? '#dcfce7' : '#fee2e2';
+    
+    doc.roundedRect(380, yTabela + 18, 150, 25, 3)
+       .fillAndStroke(bgStatus, corStatus);
+    
+    doc.fontSize(12)
+       .font('Helvetica-Bold')
+       .fillColor(corStatus)
+       .text(statusPagamento, 380, yTabela + 24, { width: 150, align: 'center' });
+
+    // Rodapé
+    doc.fontSize(8)
+       .fillColor('#94a3b8')
+       .font('Helvetica')
+       .text(`Documento gerado em ${hoje}`, 50, doc.page.height - 30, { align: 'center' });
+
+    // Finaliza o documento
+    doc.end();
+
+  } catch (error) {
+    console.error('Erro ao gerar PDF:', error);
+    res.status(500).send({ error: 'Erro ao gerar PDF: ' + error.message });
   }
 };
 
@@ -749,4 +1021,5 @@ module.exports = {
   markAsUnpaid,
   remove,
   renderHistory,
+  generatePDF,
 };

@@ -47,6 +47,12 @@
                   <span class="text-gray-400">Cliente:</span>
                   <span class="text-white font-semibold"><%= task.client ? task.client.name : '-' %></span>
                 </div>
+                <% if (task.service_date) { %>
+                <div class="flex justify-between">
+                  <span class="text-gray-400">Data do Serviço:</span>
+                  <span class="text-white"><%= task.service_date.split('T')[0].split('-').reverse().join('/') %></span>
+                </div>
+                <% } %>
                 <div class="flex flex-col">
                   <span class="text-gray-400 mb-1">Serviço:</span>
                   <div class="text-white font-semibold bg-gray-600 rounded p-2 whitespace-pre-wrap"><%= task.serviceName %></div>

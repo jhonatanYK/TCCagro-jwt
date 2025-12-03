@@ -37,6 +37,10 @@ const TaskHistory = db.define('task_history', {
     type: db.Sequelize.FLOAT,
     defaultValue: 0,
   },
+  service_date: {
+    type: db.Sequelize.DATEONLY,
+    allowNull: false,
+  },
   user_id: {
     type: db.Sequelize.INTEGER,
     allowNull: false,

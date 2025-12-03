@@ -18,44 +18,100 @@
 
       <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-6xl border border-slate-600">
         
-        <!-- Filtro de Clientes -->
+        <!-- Filtros -->
         <div class="mb-6">
-          <form method="GET" action="/tasks/history" class="flex items-center gap-4">
-            <div class="flex-1">
-              <label for="clientFilter" class="block text-sm font-medium text-gray-300 mb-2">
-                Filtrar por Cliente
-              </label>
-              <select 
-                id="clientFilter" 
-                name="client" 
-                onchange="this.form.submit()"
-                class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500"
-              >
-                <option value="">Todos os Clientes</option>
-                <% if (clients && clients.length > 0) { %>
-                  <% clients.forEach(client => { %>
-                    <option value="<%= client.clientName %>" <%= selectedClient === client.clientName ? 'selected' : '' %>>
-                      <%= client.clientName %>
-                    </option>
-                  <% }); %>
-                <% } %>
-              </select>
+          <form method="GET" action="/tasks/history" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- Filtro por Cliente -->
+              <div>
+                <label for="clientFilter" class="block text-sm font-medium text-gray-300 mb-2">
+                  Filtrar por Cliente
+                </label>
+                <select 
+                  id="clientFilter" 
+                  name="client" 
+                  class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                >
+                  <option value="">Todos os Clientes</option>
+                  <% if (clients && clients.length > 0) { %>
+                    <% clients.forEach(client => { %>
+                      <option value="<%= client.clientName %>" <%= selectedClient === client.clientName ? 'selected' : '' %>>
+                        <%= client.clientName %>
+                      </option>
+                    <% }); %>
+                  <% } %>
+                </select>
+              </div>
+              
+              <!-- Filtro Data Inicial -->
+              <div>
+                <label for="startDate" class="block text-sm font-medium text-gray-300 mb-2">
+                  Data Inicial
+                </label>
+                <input 
+                  type="date" 
+                  id="startDate" 
+                  name="startDate" 
+                  value="<%= startDate || '' %>"
+                  class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                />
+              </div>
+              
+              <!-- Filtro Data Final -->
+              <div>
+                <label for="endDate" class="block text-sm font-medium text-gray-300 mb-2">
+                  Data Final
+                </label>
+                <input 
+                  type="date" 
+                  id="endDate" 
+                  name="endDate" 
+                  value="<%= endDate || '' %>"
+                  class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                />
+              </div>
             </div>
-            <% if (selectedClient) { %>
-              <div class="mt-6">
+            
+            <!-- Botões de ação -->
+            <div class="flex gap-3">
+              <button 
+                type="submit"
+                class="bg-slate-600 hover:bg-slate-500 text-white px-6 py-2 rounded-lg transition-colors inline-flex items-center gap-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                Filtrar
+              </button>
+              <% if (selectedClient || startDate || endDate) { %>
                 <a 
                   href="/tasks/history" 
-                  class="inline-block bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition-colors"
+                  class="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded-lg transition-colors"
                 >
-                  Limpar Filtro
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                  Limpar Filtros
                 </a>
-              </div>
-            <% } %>
+              <% } %>
+            </div>
           </form>
           
-          <% if (selectedClient) { %>
+          <% if (selectedClient || startDate || endDate) { %>
             <div class="mt-3 text-sm text-gray-400">
-              Exibindo <%= tasks.length %> serviço(s) de <span class="font-semibold text-slate-400"><%= selectedClient %></span>
+              Exibindo <%= tasks.length %> serviço(s)
+              <% if (selectedClient) { %>
+                de <span class="font-semibold text-slate-400"><%= selectedClient %></span>
+              <% } %>
+              <% if (startDate || endDate) { %>
+                <% if (startDate && endDate) { %>
+                  entre <span class="font-semibold text-slate-400"><%= startDate.split('-').reverse().join('/') %></span> e <span class="font-semibold text-slate-400"><%= endDate.split('-').reverse().join('/') %></span>
+                <% } else if (startDate) { %>
+                  a partir de <span class="font-semibold text-slate-400"><%= startDate.split('-').reverse().join('/') %></span>
+                <% } else if (endDate) { %>
+                  até <span class="font-semibold text-slate-400"><%= endDate.split('-').reverse().join('/') %></span>
+                <% } %>
+              <% } %>
             </div>
           <% } else { %>
             <div class="mt-3 text-sm text-gray-400">
@@ -79,17 +135,26 @@
             <table class="w-full">
               <thead>
                 <tr class="border-b border-gray-700">
+                  <th class="text-left py-3 px-4 text-slate-300">Data</th>
                   <th class="text-left py-3 px-4 text-slate-300">Cliente</th>
                   <th class="text-left py-3 px-4 text-slate-300">Serviço</th>
                   <th class="text-left py-3 px-4 text-slate-300">Máquina</th>
                   <th class="text-left py-3 px-4 text-slate-300">Horas</th>
                   <th class="text-left py-3 px-4 text-slate-300">Valor</th>
                   <th class="text-center py-3 px-4 text-slate-300">Status</th>
+                  <th class="text-center py-3 px-4 text-slate-300">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 <% tasks.forEach(task => { %>
                   <tr class="border-b border-gray-700 hover:bg-gray-700">
+                    <td class="py-3 px-4 text-gray-300">
+                      <% if (task.service_date) { %>
+                        <%= task.service_date.split('T')[0].split('-').reverse().join('/') %>
+                      <% } else { %>
+                        -
+                      <% } %>
+                    </td>
                     <td class="py-3 px-4 text-white"><%= task.client.name %></td>
                     <td class="py-3 px-4 text-white">
                       <div class="font-semibold"><%= task.serviceName %></div>
@@ -142,6 +207,19 @@
                         <%= task.paid ? '✓ Pago' : '❌ Não Pago' %>
                       </span>
                     </td>
+                    <td class="py-3 px-4 text-center">
+                      <a
+                        href="/tasks/pdf/<%= task.task_id || task.id %>"
+                        target="_blank"
+                        class="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 text-sm font-bold transition border-2 border-blue-500 shadow-md hover:shadow-lg"
+                        title="Gerar PDF"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        PDF
+                      </a>
+                    </td>
                   </tr>
                 <% }); %>
               </tbody>
@@ -155,7 +233,7 @@
             <!-- Botão Anterior -->
             <% if (currentPage > 1) { %>
               <a 
-                href="/tasks/history?page=<%= currentPage - 1 %><%= selectedClient ? '&client=' + selectedClient : '' %>"
+                href="/tasks/history?page=<%= currentPage - 1 %><%= selectedClient ? '&client=' + selectedClient : '' %><%= startDate ? '&startDate=' + startDate : '' %><%= endDate ? '&endDate=' + endDate : '' %>"
                 class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
               >
                 ← Anterior
@@ -180,7 +258,7 @@
               
               <% if (startPage > 1) { %>
                 <a 
-                  href="/tasks/history?page=1<%= selectedClient ? '&client=' + selectedClient : '' %>"
+                  href="/tasks/history?page=1<%= selectedClient ? '&client=' + selectedClient : '' %><%= startDate ? '&startDate=' + startDate : '' %><%= endDate ? '&endDate=' + endDate : '' %>"
                   class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
                 >
                   1
@@ -197,7 +275,7 @@
                   </span>
                 <% } else { %>
                   <a 
-                    href="/tasks/history?page=<%= i %><%= selectedClient ? '&client=' + selectedClient : '' %>"
+                    href="/tasks/history?page=<%= i %><%= selectedClient ? '&client=' + selectedClient : '' %><%= startDate ? '&startDate=' + startDate : '' %><%= endDate ? '&endDate=' + endDate : '' %>"
                     class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
                   >
                     <%= i %>
@@ -210,7 +288,7 @@
                   <span class="px-3 py-2 text-gray-500">...</span>
                 <% } %>
                 <a 
-                  href="/tasks/history?page=<%= totalPages %><%= selectedClient ? '&client=' + selectedClient : '' %>"
+                  href="/tasks/history?page=<%= totalPages %><%= selectedClient ? '&client=' + selectedClient : '' %><%= startDate ? '&startDate=' + startDate : '' %><%= endDate ? '&endDate=' + endDate : '' %>"
                   class="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
                 >
                   <%= totalPages %>
@@ -221,7 +299,7 @@
             <!-- Botão Próximo -->
             <% if (currentPage < totalPages) { %>
               <a 
-                href="/tasks/history?page=<%= currentPage + 1 %><%= selectedClient ? '&client=' + selectedClient : '' %>"
+                href="/tasks/history?page=<%= currentPage + 1 %><%= selectedClient ? '&client=' + selectedClient : '' %><%= startDate ? '&startDate=' + startDate : '' %><%= endDate ? '&endDate=' + endDate : '' %>"
                 class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
               >
                 Próximo →
