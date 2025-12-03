@@ -807,7 +807,12 @@ const generatePDF = async (req, res) => {
     }
 
     // Cria o documento PDF
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc = new PDFDocument({ 
+      margin: 50, 
+      size: 'A4',
+      autoFirstPage: true,
+      bufferPages: true
+    });
 
     // Define headers para download
     res.setHeader('Content-Type', 'application/pdf');
@@ -863,9 +868,35 @@ const generatePDF = async (req, res) => {
       doc.text(`E-mail: ${task.client.email}`, 65, yCliente + 55);
     }
 
-    // Box de informações do serviço
+    // Box de informações do serviço (altura dinâmica)
     const yServico = 240;
-    doc.roundedRect(50, yServico, 495, 110, 5)
+    let yTexto = yServico + 38;
+    
+    // Calcula a altura do conteúdo primeiro
+    let linhasServico = 0;
+    
+    if (task.service_date) {
+      linhasServico++;
+    }
+    
+    linhasServico++; // Tipo de Serviço (sempre tem)
+    
+    if (task.location) {
+      linhasServico++;
+    }
+    
+    // Calcula altura da descrição (se houver)
+    let alturaDescricao = 0;
+    if (task.description) {
+      const descricaoHeight = doc.heightOfString(task.description, { width: 465, fontSize: 11 });
+      alturaDescricao = descricaoHeight;
+    }
+    
+    // Altura total do box: padding top (38) + linhas fixas (17 cada) + descrição + padding bottom (15)
+    const alturaBoxServico = 38 + (linhasServico * 17) + alturaDescricao + 15;
+    
+    // Desenha o box com altura dinâmica
+    doc.roundedRect(50, yServico, 495, alturaBoxServico, 5)
        .lineWidth(2)
        .strokeColor(corPrimaria)
        .stroke();
@@ -878,8 +909,6 @@ const generatePDF = async (req, res) => {
     doc.fillColor(corTexto)
        .fontSize(11)
        .font('Helvetica');
-    
-    let yTexto = yServico + 38;
     
     if (task.service_date) {
       const dateStr = task.service_date.split('T')[0].split('-').reverse().join('/');
@@ -897,10 +926,11 @@ const generatePDF = async (req, res) => {
     
     if (task.description) {
       doc.text(`Descrição: ${task.description}`, 65, yTexto, { width: 465 });
+      yTexto += alturaDescricao;
     }
 
-    // Tabela de máquinas
-    let yTabela = 370;
+    // Tabela de máquinas (posição dinâmica baseada no box anterior)
+    let yTabela = yServico + alturaBoxServico + 20;
     doc.fillColor(corPrimaria)
        .fontSize(13)
        .font('Helvetica-Bold')
@@ -914,58 +944,107 @@ const generatePDF = async (req, res) => {
       const machine = item.machine;
       const tm = item.taskMachine;
       
-      // Box para cada máquina
-      const alturaBox = tm.endTime ? 100 : 80;
+      // Box para cada máquina com altura adequada
+      const alturaBox = tm.endTime ? 145 : 95;
       
-      doc.roundedRect(50, yTabela, 495, alturaBox, 3)
-         .lineWidth(1)
-         .strokeColor('#cbd5e1')
-         .stroke();
+      // Desenha o fundo branco primeiro
+      doc.roundedRect(50, yTabela, 495, alturaBox, 5)
+         .fill('#ffffff');
       
-      // Fundo do header da máquina
-      doc.rect(50, yTabela, 495, 25).fill('#f1f5f9');
+      // Header da máquina (preenchido com azul claro)
+      doc.roundedRect(50, yTabela, 495, 35, 5)
+         .fill('#e0f2fe');
       
       doc.fillColor(corSecundaria)
-         .fontSize(12)
+         .fontSize(13)
          .font('Helvetica-Bold')
-         .text(`${index + 1}. ${machine.name}`, 60, yTabela + 7);
+         .text(`${index + 1}. ${machine.name}`, 65, yTabela + 10);
       
       doc.fillColor('#64748b')
-         .fontSize(10)
+         .fontSize(11)
+         .font('Helvetica-Oblique')
+         .text(`${machine.type}`, 400, yTabela + 10);
+      
+      // Borda verde ao redor de tudo
+      doc.roundedRect(50, yTabela, 495, alturaBox, 5)
+         .lineWidth(1.5)
+         .strokeColor(corPrimaria)
+         .stroke();
+      
+      // Grid de informações
+      let yInfo = yTabela + 48;
+      
+      // Linha 1: Valor/Hora e Horímetro Inicial
+      doc.fillColor('#64748b')
+         .fontSize(9)
          .font('Helvetica')
-         .text(`(${machine.type})`, 60, yTabela + 7, { align: 'right', width: 475 });
+         .text('VALOR/HORA:', 65, yInfo);
       
-      // Detalhes da máquina
       doc.fillColor(corTexto)
-         .fontSize(10)
-         .font('Helvetica');
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text(`R$ ${parseFloat(tm.hourlyRate || 0).toFixed(2).replace('.', ',')}`, 65, yInfo + 13);
       
-      let yDetalhe = yTabela + 35;
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('HORÍMETRO INICIAL:', 280, yInfo);
       
-      doc.text(`Valor/Hora: R$ ${parseFloat(tm.hourlyRate || 0).toFixed(2).replace('.', ',')}`, 60, yDetalhe);
-      doc.text(`Horímetro Inicial: ${tm.startTime || '-'}`, 300, yDetalhe);
-      
-      yDetalhe += 17;
+      doc.fillColor(corTexto)
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text(`${tm.startTime || '-'}`, 280, yInfo + 13);
       
       if (tm.endTime) {
-        doc.text(`Horímetro Final: ${tm.endTime}`, 60, yDetalhe);
-        doc.text(`Horas: ${parseFloat(tm.hoursWorked || 0).toFixed(1).replace('.', ',')}h`, 300, yDetalhe);
+        yInfo += 32;
         
-        yDetalhe += 17;
+        // Linha 2: Horímetro Final e Horas Trabalhadas
+        doc.fillColor('#64748b')
+           .fontSize(9)
+           .font('Helvetica')
+           .text('HORÍMETRO FINAL:', 65, yInfo);
         
+        doc.fillColor(corTexto)
+           .fontSize(11)
+           .font('Helvetica-Bold')
+           .text(`${tm.endTime}`, 65, yInfo + 13);
+        
+        doc.fillColor('#64748b')
+           .fontSize(9)
+           .font('Helvetica')
+           .text('HORAS TRABALHADAS:', 280, yInfo);
+        
+        doc.fillColor(corTexto)
+           .fontSize(11)
+           .font('Helvetica-Bold')
+           .text(`${parseFloat(tm.hoursWorked || 0).toFixed(1).replace('.', ',')} h`, 280, yInfo + 13);
+        
+        yInfo += 32;
+        
+        // Linha 3: Subtotal
         const valor = parseFloat(tm.totalAmount || 0);
         totalGeral += valor;
         
-        doc.font('Helvetica-Bold')
-           .fillColor(corPrimaria)
-           .text(`Subtotal: R$ ${valor.toFixed(2).replace('.', ',')}`, 60, yDetalhe);
+        doc.fillColor('#16a34a')
+           .fontSize(9)
+           .font('Helvetica')
+           .text('SUBTOTAL:', 65, yInfo);
+        
+        doc.fillColor('#16a34a')
+           .fontSize(12)
+           .font('Helvetica-Bold')
+           .text(`R$ ${valor.toFixed(2).replace('.', ',')}`, 65, yInfo + 13);
+        
       } else {
+        yInfo += 20;
+        // Status em andamento
         doc.fillColor('#dc2626')
-           .font('Helvetica-Oblique')
-           .text('⏳ Em andamento', 60, yDetalhe);
+           .fontSize(10)
+           .font('Helvetica-Bold')
+           .text('⏳ Em andamento', 65, yInfo);
       }
       
-      yTabela += alturaBox + 10;
+      yTabela += alturaBox + 15;
     });
 
     // Box do total
@@ -984,7 +1063,7 @@ const generatePDF = async (req, res) => {
        .text(`R$ ${totalGeral.toFixed(2).replace('.', ',')}`, 65, yTabela + 32);
     
     // Status de pagamento
-    const statusPagamento = task.paid ? 'PAGO ✓' : 'PENDENTE';
+    const statusPagamento = task.paid ? 'PAGO' : 'PENDENTE';
     const corStatus = task.paid ? '#16a34a' : '#dc2626';
     const bgStatus = task.paid ? '#dcfce7' : '#fee2e2';
     
@@ -996,11 +1075,12 @@ const generatePDF = async (req, res) => {
        .fillColor(corStatus)
        .text(statusPagamento, 380, yTabela + 24, { width: 150, align: 'center' });
 
-    // Rodapé
+    // Rodapé (posição fixa)
+    yTabela += 80;
     doc.fontSize(8)
        .fillColor('#94a3b8')
        .font('Helvetica')
-       .text(`Documento gerado em ${hoje}`, 50, doc.page.height - 30, { align: 'center' });
+       .text(`Documento gerado em ${hoje}`, 50, yTabela, { align: 'center', width: 495 });
 
     // Finaliza o documento
     doc.end();
